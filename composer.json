@@ -1,0 +1,40 @@
+{
+    "name": "artemyurov/moonshine-db-joblog",
+    "description": "Job logging with MoonShine admin panel for Laravel queue jobs",
+    "type": "library",
+    "license": "MIT",
+    "require": {
+        "php": "^8.2",
+        "illuminate/support": "^11.0|^12.0",
+        "illuminate/database": "^11.0|^12.0",
+        "illuminate/queue": "^11.0|^12.0",
+        "monolog/monolog": "^3.0",
+        "symfony/var-dumper": "^7.0",
+        "moonshine/moonshine": "^4.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.5|^11.0"
+    },
+    "suggest": {
+        "laravel/horizon": "Required for tag resolution and queue purge interception"
+    },
+    "autoload": {
+        "psr-4": {
+            "ArtemYurov\\JobLog\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "ArtemYurov\\JobLog\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "ArtemYurov\\JobLog\\JobLogServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
