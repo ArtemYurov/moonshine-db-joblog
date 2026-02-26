@@ -7,10 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class JobLogRecord extends Model
 {
-    public function getTable(): string
-    {
-        return config('joblog.tables.job_log_records', 'job_log_records');
-    }
+    protected $table = 'job_log_records';
 
     public $timestamps = false;
 

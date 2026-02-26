@@ -21,7 +21,7 @@
 - Цветной вывод в консоль при выполнении через `artisan`
 - MoonShine ресурсы с фильтрами, query tags и детальным просмотром
 - Интеграция с Laravel Horizon (разрешение тегов, перехват purge)
-- Настраиваемые имена таблиц, очистка и пути сканирования
+- Настраиваемое расписание очистки и пути сканирования job-классов
 - Поддержка i18n (EN, RU из коробки)
 
 ## Требования
@@ -244,16 +244,11 @@ class MyJobLogResource extends JobLogResource
 ```php
 // config/joblog.php
 return [
-    // Имена таблиц
-    'tables' => [
-        'job_logs' => 'job_logs',
-        'job_log_steps' => 'job_log_steps',
-        'job_log_records' => 'job_log_records',
-    ],
-
     // Очистка старых записей
     'cleanup' => [
-        'default_days' => 30,
+        'days' => 30,
+        'schedule' => false, // false, 'daily', 'weekly', 'hourly'
+        'time' => '03:00',
     ],
 
     // Вывод в консоль при выполнении artisan команд

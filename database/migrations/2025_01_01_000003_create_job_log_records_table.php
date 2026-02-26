@@ -8,17 +8,14 @@ return new class extends Migration
 {
     public function up(): void
     {
-        $tableName = config('joblog.tables.job_log_records', 'job_log_records');
-        $jobLogsTable = config('joblog.tables.job_logs', 'job_logs');
-
-        if (Schema::hasTable($tableName)) {
+        if (Schema::hasTable('job_log_records')) {
             return;
         }
 
-        Schema::create($tableName, function (Blueprint $table) use ($jobLogsTable) {
+        Schema::create('job_log_records', function (Blueprint $table) {
             $table->id();
 
-            $table->foreignId('job_log_id')->constrained($jobLogsTable)->cascadeOnDelete();
+            $table->foreignId('job_log_id')->constrained('job_logs')->cascadeOnDelete();
             $table->string('step_key')->nullable();
 
             // Log level (emergency, alert, critical, error, warning, notice, info, debug)
@@ -40,7 +37,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        $tableName = config('joblog.tables.job_log_records', 'job_log_records');
-        Schema::dropIfExists($tableName);
+        Schema::dropIfExists('job_log_records');
     }
 };

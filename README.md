@@ -21,7 +21,7 @@ Track your queue jobs in real-time: statuses, steps, progress, errors — all vi
 - Color-coded console output during `artisan` execution
 - MoonShine admin resources with filters, query tags, and detail views
 - Laravel Horizon integration (tag resolution, purge interception)
-- Configurable table names, cleanup, and scan paths
+- Configurable cleanup schedule and job scan paths
 - i18n support (EN, RU out of the box)
 
 ## Requirements
@@ -244,16 +244,11 @@ class MyJobLogResource extends JobLogResource
 ```php
 // config/joblog.php
 return [
-    // Custom table names
-    'tables' => [
-        'job_logs' => 'job_logs',
-        'job_log_steps' => 'job_log_steps',
-        'job_log_records' => 'job_log_records',
-    ],
-
     // Cleanup old records
     'cleanup' => [
-        'default_days' => 30,
+        'days' => 30,
+        'schedule' => false, // false, 'daily', 'weekly', 'hourly'
+        'time' => '03:00',
     ],
 
     // Console output during artisan commands

@@ -3,28 +3,13 @@
 return [
     /*
     |--------------------------------------------------------------------------
-    | Table Names
-    |--------------------------------------------------------------------------
-    */
-    'tables' => [
-        'job_logs' => 'job_logs',
-        'job_log_steps' => 'job_log_steps',
-        'job_log_records' => 'job_log_records',
-    ],
-
-    /*
-    |--------------------------------------------------------------------------
     | Old Records Cleanup
     |--------------------------------------------------------------------------
     | schedule — automatic registration in Laravel Schedule
-    |   false — disabled (default), user configures cron manually
-    |   'daily' — daily at specified time
-    |   'weekly' — weekly at specified time
-    |   'hourly' — every hour
     */
     'cleanup' => [
         'days' => 30,
-        'schedule' => false,
+        'schedule' => false, // false, 'daily', 'weekly', 'hourly'
         'time' => '03:00',
     ],
 
@@ -32,6 +17,11 @@ return [
     |--------------------------------------------------------------------------
     | Console Output
     |--------------------------------------------------------------------------
+    | When enabled, job logger messages (info, warning, error, step start, etc.)
+    | are duplicated to stdout with ANSI coloring. Only works when running in
+    | CLI context (artisan commands, queue workers, Horizon).
+    |
+    | Set to false to write only to the database (job_log_records table).
     */
     'console_output' => true,
 
@@ -55,6 +45,6 @@ return [
     | Used in MoonShine resource for filtering by job class
     */
     'job_class_scan_paths' => [
-        // Default — app/Jobs
+        // app_path('Jobs'),
     ],
 ];

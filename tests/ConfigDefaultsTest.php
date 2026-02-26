@@ -22,12 +22,9 @@ class ConfigDefaultsTest extends TestCase
         $this->assertIsArray($this->config);
     }
 
-    public function test_tables_section_has_all_tables(): void
+    public function test_no_tables_section(): void
     {
-        $this->assertArrayHasKey('tables', $this->config);
-        $this->assertSame('job_logs', $this->config['tables']['job_logs']);
-        $this->assertSame('job_log_steps', $this->config['tables']['job_log_steps']);
-        $this->assertSame('job_log_records', $this->config['tables']['job_log_records']);
+        $this->assertArrayNotHasKey('tables', $this->config);
     }
 
     public function test_cleanup_default_days(): void

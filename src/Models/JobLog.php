@@ -10,10 +10,7 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class JobLog extends Model
 {
-    public function getTable(): string
-    {
-        return config('joblog.tables.job_logs', 'job_logs');
-    }
+    protected $table = 'job_logs';
 
     protected $casts = [
         'queued_at' => 'datetime',

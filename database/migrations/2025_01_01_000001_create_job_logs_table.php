@@ -8,13 +8,11 @@ return new class extends Migration
 {
     public function up(): void
     {
-        $tableName = config('joblog.tables.job_logs', 'job_logs');
-
-        if (Schema::hasTable($tableName)) {
+        if (Schema::hasTable('job_logs')) {
             return;
         }
 
-        Schema::create($tableName, function (Blueprint $table) {
+        Schema::create('job_logs', function (Blueprint $table) {
             $table->id();
             $table->string('connection')->default('database');
             $table->string('queue')->default('default')->nullable();
@@ -48,7 +46,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        $tableName = config('joblog.tables.job_logs', 'job_logs');
-        Schema::dropIfExists($tableName);
+        Schema::dropIfExists('job_logs');
     }
 };

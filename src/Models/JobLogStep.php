@@ -9,10 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class JobLogStep extends Model
 {
-    public function getTable(): string
-    {
-        return config('joblog.tables.job_log_steps', 'job_log_steps');
-    }
+    protected $table = 'job_log_steps';
 
     protected function casts(): array
     {
