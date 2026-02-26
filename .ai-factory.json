@@ -1,0 +1,24 @@
+{
+  "version": "2.2.2",
+  "agents": [
+    {
+      "id": "claude",
+      "skillsDir": ".claude/skills",
+      "installedSkills": [
+        "aif",
+        "aif-architecture",
+        "aif-best-practices",
+        "aif-review",
+        "aif-verify"
+      ],
+      "mcp": {
+        "github": false,
+        "filesystem": false,
+        "postgres": false,
+        "chromeDevtools": false,
+        "playwright": false
+      }
+    }
+  ],
+  "extensions": []
+}
