@@ -5,6 +5,7 @@ namespace ArtemYurov\JobLog\Models;
 use ArtemYurov\JobLog\Enums\JobLogStatus;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
@@ -43,8 +44,8 @@ class JobLog extends Model
     {
         try {
             return self::where('job_uuid', $jobUuid)->firstOrFail();
-        } catch (\Exception $e) {
-            throw new \Exception('JobLog not found for UUID: ' . $jobUuid);
+        } catch (ModelNotFoundException $e) {
+            throw new \RuntimeException('JobLog not found for UUID: ' . $jobUuid, 0, $e);
         }
     }
 

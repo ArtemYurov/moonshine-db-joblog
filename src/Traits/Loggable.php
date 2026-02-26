@@ -33,9 +33,9 @@ trait Loggable
         $this->autoStepProgress = false;
     }
 
-    public function middleware(): array
+    public function initializeLoggable(): void
     {
-        return [(new LoggableExceptionAttempts())];
+        $this->middleware[] = new LoggableExceptionAttempts();
     }
 
     public function log(): JobLogger

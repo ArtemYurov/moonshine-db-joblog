@@ -54,7 +54,7 @@ class ServiceProviderDetectionTest extends TestCase
         $this->assertFalse($this->isLoggableJob($job));
     }
 
-    public function test_has_middleware_from_method(): void
+    public function test_has_middleware_from_property_via_loggable(): void
     {
         $job = new FakeLoggableJob();
         $this->assertTrue($this->hasMiddleware($job, LoggableExceptionAttempts::class));

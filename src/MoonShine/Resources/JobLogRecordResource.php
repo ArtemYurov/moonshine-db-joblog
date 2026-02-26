@@ -55,7 +55,7 @@ class JobLogRecordResource extends ModelResource
     {
         return [
             ID::make(),
-            Text::make(__('joblog::joblog.record.step_key'), 'step'),
+            Text::make(__('joblog::joblog.record.step_key'), 'step_key'),
             Text::make(__('joblog::joblog.record.level'), 'level'),
             Textarea::make(__('joblog::joblog.record.message'), 'message'),
             Textarea::make(__('joblog::joblog.record.context'), 'context'),

@@ -7,25 +7,23 @@ use ArtemYurov\JobLog\Tests\Fixtures\FakeLoggableJob;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Tests that Loggable::middleware() returns the correct middleware
+ * Tests that Loggable trait initializes middleware correctly via $middleware property
  */
 class LoggableMiddlewareReturnTest extends TestCase
 {
     public function test_loggable_middleware_returns_array(): void
     {
         $job = new FakeLoggableJob();
-        $middleware = $job->middleware();
 
-        $this->assertIsArray($middleware);
+        $this->assertIsArray($job->middleware);
     }
 
     public function test_loggable_middleware_contains_exception_attempts(): void
     {
         $job = new FakeLoggableJob();
-        $middleware = $job->middleware();
 
-        $this->assertCount(1, $middleware);
-        $this->assertInstanceOf(LoggableExceptionAttempts::class, $middleware[0]);
+        $this->assertCount(1, $job->middleware);
+        $this->assertInstanceOf(LoggableExceptionAttempts::class, $job->middleware[0]);
     }
 
     public function test_loggable_has_default_steps_method(): void
