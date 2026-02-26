@@ -12,7 +12,7 @@ class LoggableExceptionAttempts
 
         try {
             if ($haveJobLogger) {
-                $job->log()->info("Attemt: {$job->attempts()}");
+                $job->log()->info("Attempt: {$job->attempts()}");
             }
             $next($job);
         } catch (\Throwable $e) {

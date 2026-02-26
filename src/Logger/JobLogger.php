@@ -87,7 +87,7 @@ class JobLogger
             throw new \InvalidArgumentException("Step key '{$stepKey}' is not defined in the steps array. Available steps: " . implode(', ', array_keys($this->steps)));
         }
 
-        $stepName = $this->steps[$stepKey] ?? $stepKey;
+        $stepName = $this->steps[$stepKey] ?? null;
 
         $this->recalculateAutoStepProgress();
 

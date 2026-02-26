@@ -47,7 +47,7 @@ class JobLogStepResource extends ModelResource
         return [
             ID::make()->sortable(),
             Text::make(__('joblog::joblog.step.step_key'), 'step_key'),
-            Text::make(__('joblog::joblog.step.step_name'), 'step_name'),
+            Text::make(__('joblog::joblog.step.step_name'), 'step_name', fn($item) => $item->step_name ?? '-'),
             Text::make(__('joblog::joblog.step.custom_status'), 'custom_status'),
             Date::make(__('joblog::joblog.step.created_at'), 'created_at')->withTime()->sortable(),
             Date::make(__('joblog::joblog.step.updated_at'), 'updated_at')->withTime()->sortable(),
@@ -67,7 +67,7 @@ class JobLogStepResource extends ModelResource
         return [
             ID::make(),
             Text::make(__('joblog::joblog.step.step_key'), 'step_key'),
-            Text::make(__('joblog::joblog.step.step_name'), 'step_name'),
+            Text::make(__('joblog::joblog.step.step_name'), 'step_name', fn($item) => $item->step_name ?? '-'),
             Enum::make(__('joblog::joblog.field.status'), 'status')->attach(JobLogStatus::class),
             Text::make(__('joblog::joblog.step.custom_status'), 'custom_status'),
             Number::make(__('joblog::joblog.field.progress'), 'progress'),

@@ -19,7 +19,7 @@ class JobLoggerStep
     public function __construct(
         protected JobLog   $jobLog,
         protected string   $stepKey,
-        protected string   $stepName)
+        protected ?string  $stepName)
     {
         $databaseHandler = new DatabaseHandler(Level::Debug, true);
         $databaseHandler->setJobLog($this->jobLog);

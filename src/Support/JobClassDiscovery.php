@@ -40,9 +40,16 @@ final class JobClassDiscovery
 
             $pathClasses = collect($iterator)
                 ->filter(fn($file) => $file->isFile() && $file->getExtension() === 'php')
-                ->map(function ($file) use ($jobsPath) {
-                    $relativePath = str_replace($jobsPath . '/', '', $file->getPathname());
-                    return 'App\\Jobs\\' . str_replace(['/', '.php'], ['\\', ''], $relativePath);
+                ->map(function ($file) {
+                    $relativePath = ltrim(
+                        str_replace(app_path(), '', $file->getPathname()),
+                        DIRECTORY_SEPARATOR
+                    );
+                    return 'App\\' . str_replace(
+                        [DIRECTORY_SEPARATOR, '.php'],
+                        ['\\', ''],
+                        $relativePath
+                    );
                 })
                 ->filter(fn($className) => class_exists($className) && in_array(Loggable::class, class_uses_recursive($className)));
 

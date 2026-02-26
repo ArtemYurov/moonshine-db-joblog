@@ -37,6 +37,8 @@ class JobLogResource extends ModelResource
     protected SortDirection $sortDirection = SortDirection::DESC;
     protected bool $saveQueryState = true;
 
+    protected array $with = ['latestStep', 'latestErrorRecord', 'related'];
+
     protected function pages(): array
     {
         return [
@@ -69,10 +71,9 @@ class JobLogResource extends ModelResource
             Date::make(__('joblog::joblog.field.queued_at'), 'queued_at')->withTime()->changePreview(fn($value) => $this->formatDateTimeWithBreak($value))->sortable()->columnSelection(),
             Date::make(__('joblog::joblog.field.started_at'), 'started_at')->withTime()->changePreview(fn($value) => $this->formatDateTimeWithBreak($value))->sortable()->columnSelection(),
             Date::make(__('joblog::joblog.field.finished_at'), 'finished_at')->withTime()->changePreview(fn($value) => $this->formatDateTimeWithBreak($value))->sortable()->columnSelection(),
-            Textarea::make(__('joblog::joblog.field.error'), formatted: fn(JobLog $item) => $this->formatLastError($item->getLastErrorRecord(), 100, ''))->columnSelection(),
+            Textarea::make(__('joblog::joblog.field.error'), formatted: fn(JobLog $item) => $this->formatLastError($item->latestErrorRecord, 100, ''))->columnSelection(),
             Text::make(__('joblog::joblog.field.current_step'), 'current_step', function($item) {
-                $lastStep = $item->steps()->latest()->orderByDesc('id')->first();
-                return $lastStep ? $lastStep->step_key : '-';
+                return $item->latestStep ? $item->latestStep->step_key : '-';
             })->align('right')->columnSelection(),
             Number::make('', 'progress', fn($value) => $value->progress . '%')->align('right')->columnSelection(),
             Enum::make(__('joblog::joblog.field.status'), 'status')->attach(JobLogStatus::class)->sortable()->bold(),

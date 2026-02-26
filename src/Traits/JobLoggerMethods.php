@@ -134,16 +134,19 @@ trait JobLoggerMethods
 
         $updateData = ['status' => $status];
 
+        $now = Carbon::now();
+
         match ($status) {
-            JobLogStatus::QUEUED => $updateData['queued_at'] = Carbon::now(),
+            JobLogStatus::QUEUED => $updateData['queued_at'] = $now,
             JobLogStatus::PROCESSING => [
-                $updateData['started_at'] = Carbon::now(),
+                $updateData['started_at'] = $now,
                 $updateData['pid'] = getmypid(),
             ],
             JobLogStatus::PROCESSED, JobLogStatus::FAILED, JobLogStatus::INTERRUPTED => [
-                $updateData['finished_at'] = Carbon::now(),
-                $updateData['runtime_seconds'] = $this->calculateRuntimeSeconds(),
+                $updateData['finished_at'] = $now,
+                $updateData['runtime_seconds'] = $this->calculateRuntimeSeconds($now),
             ],
+            default => null,
         };
 
         if ($status === JobLogStatus::PROCESSED) {

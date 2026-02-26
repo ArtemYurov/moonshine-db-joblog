@@ -40,6 +40,7 @@ return new class extends Migration
             $table->timestamps(3);
 
             $table->unique('job_uuid');
+            $table->index('status');
             $table->index(['job_class', 'status']);
             $table->index(['queued_at', 'finished_at']);
         });

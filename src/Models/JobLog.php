@@ -7,6 +7,7 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class JobLog extends Model
@@ -38,6 +39,19 @@ class JobLog extends Model
     public function related(): MorphTo
     {
         return $this->morphTo();
+    }
+
+    public function latestStep(): HasOne
+    {
+        return $this->hasOne(JobLogStep::class)->latestOfMany();
+    }
+
+    public function latestErrorRecord(): HasOne
+    {
+        return $this->hasOne(JobLogRecord::class)
+            ->whereNull('step_key')
+            ->where('level', 'error')
+            ->latestOfMany();
     }
 
     public static function findByJobUuid(string $jobUuid): self
