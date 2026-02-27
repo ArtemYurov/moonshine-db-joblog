@@ -48,6 +48,16 @@ Optionally publish the config:
 php artisan vendor:publish --tag=joblog-config
 ```
 
+### Localization
+
+The package ships with EN and RU translations. Publish to customize:
+
+```bash
+php artisan vendor:publish --tag=joblog-lang
+```
+
+Files will be placed in `lang/vendor/joblog/`. Translation namespace: `joblog::joblog`.
+
 ## Quick Start
 
 ### 1. Add the Loggable trait to your job
@@ -295,69 +305,6 @@ php artisan joblog:cleanup --days=7
 # Truncate all records
 php artisan joblog:truncate
 ```
-
-## Localization
-
-The package ships with EN and RU translations. Publish to customize:
-
-```bash
-php artisan vendor:publish --tag=joblog-lang
-```
-
-Files will be placed in `lang/vendor/joblog/`. Translation namespace: `joblog::joblog`.
-
-## Database schema
-
-### job_logs
-
-| Column | Type | Description |
-|--------|------|-------------|
-| id | bigint | Primary key |
-| connection | string | Queue connection name |
-| queue | string | Queue name |
-| job_uuid | uuid | Laravel job UUID |
-| job_class | string | Fully qualified job class name |
-| related_type | string (nullable) | Polymorphic model type |
-| related_id | bigint (nullable) | Polymorphic model ID |
-| queued_at | timestamp(3) | When queued |
-| started_at | timestamp(3) | When processing started |
-| finished_at | timestamp(3) | When finished |
-| runtime_seconds | integer | Total runtime in seconds |
-| progress | tinyint | Progress 0–100 |
-| status | string | queued / processing / processed / failed / interrupted |
-| pid | integer (nullable) | Process ID |
-| args | json | Serialized constructor arguments |
-| tags | json | Horizon tags |
-| data | json | Custom key-value data |
-
-### job_log_steps
-
-| Column | Type | Description |
-|--------|------|-------------|
-| id | bigint | Primary key |
-| job_log_id | bigint (FK) | Parent job log |
-| step_key | string | Step identifier |
-| step_name | string | Human-readable step name |
-| status | string | processing / processed / failed |
-| custom_status | string (nullable) | User-defined status text |
-| progress | tinyint | Step progress 0–100 |
-| started_at | timestamp(3) | Step start time |
-| finished_at | timestamp(3) | Step finish time |
-| runtime_seconds | integer | Step runtime |
-| data | json | Step-specific data |
-
-### job_log_records
-
-| Column | Type | Description |
-|--------|------|-------------|
-| id | bigint | Primary key |
-| job_log_id | bigint (FK) | Parent job log |
-| job_log_step_id | bigint (FK, nullable) | Parent step (null for job-level records) |
-| level | string(20) | PSR-3 log level |
-| message | text | Log message |
-| context | json (nullable) | Additional context |
-| trace | longtext (nullable) | Exception stack trace |
-| created_at | timestamp(3) | Record timestamp |
 
 ## License
 

@@ -48,6 +48,16 @@ php artisan migrate
 php artisan vendor:publish --tag=joblog-config
 ```
 
+### Локализация
+
+Пакет поставляется с переводами EN и RU. Опубликуйте для кастомизации:
+
+```bash
+php artisan vendor:publish --tag=joblog-lang
+```
+
+Файлы будут размещены в `lang/vendor/joblog/`. Пространство имён переводов: `joblog::joblog`.
+
 ## Быстрый старт
 
 ### 1. Добавьте трейт Loggable в job
@@ -295,69 +305,6 @@ php artisan joblog:cleanup --days=7
 # Полная очистка всех записей
 php artisan joblog:truncate
 ```
-
-## Локализация
-
-Пакет поставляется с переводами EN и RU. Опубликуйте для кастомизации:
-
-```bash
-php artisan vendor:publish --tag=joblog-lang
-```
-
-Файлы будут размещены в `lang/vendor/joblog/`. Пространство имён переводов: `joblog::joblog`.
-
-## Схема базы данных
-
-### job_logs
-
-| Колонка | Тип | Описание |
-|---------|-----|----------|
-| id | bigint | Первичный ключ |
-| connection | string | Имя подключения очереди |
-| queue | string | Имя очереди |
-| job_uuid | uuid | UUID задачи Laravel |
-| job_class | string | Полное имя класса задачи |
-| related_type | string (nullable) | Тип полиморфной модели |
-| related_id | bigint (nullable) | ID полиморфной модели |
-| queued_at | timestamp(3) | Время постановки в очередь |
-| started_at | timestamp(3) | Время начала обработки |
-| finished_at | timestamp(3) | Время завершения |
-| runtime_seconds | integer | Время выполнения в секундах |
-| progress | tinyint | Прогресс 0–100 |
-| status | string | queued / processing / processed / failed / interrupted |
-| pid | integer (nullable) | ID процесса |
-| args | json | Сериализованные аргументы конструктора |
-| tags | json | Теги Horizon |
-| data | json | Пользовательские данные ключ-значение |
-
-### job_log_steps
-
-| Колонка | Тип | Описание |
-|---------|-----|----------|
-| id | bigint | Первичный ключ |
-| job_log_id | bigint (FK) | Родительский лог задачи |
-| step_key | string | Идентификатор шага |
-| step_name | string | Человекочитаемое имя шага |
-| status | string | processing / processed / failed |
-| custom_status | string (nullable) | Пользовательский текст статуса |
-| progress | tinyint | Прогресс шага 0–100 |
-| started_at | timestamp(3) | Время начала шага |
-| finished_at | timestamp(3) | Время завершения шага |
-| runtime_seconds | integer | Время выполнения шага |
-| data | json | Данные шага |
-
-### job_log_records
-
-| Колонка | Тип | Описание |
-|---------|-----|----------|
-| id | bigint | Первичный ключ |
-| job_log_id | bigint (FK) | Родительский лог задачи |
-| job_log_step_id | bigint (FK, nullable) | Родительский шаг (null для записей уровня job) |
-| level | string(20) | Уровень лога PSR-3 |
-| message | text | Сообщение лога |
-| context | json (nullable) | Дополнительный контекст |
-| trace | longtext (nullable) | Стек вызовов исключения |
-| created_at | timestamp(3) | Время записи |
 
 ## Лицензия
 
