@@ -49,10 +49,10 @@ class ConfigDefaultsTest extends TestCase
         $this->assertTrue($this->config['console_output']);
     }
 
-    public function test_horizon_auto_by_default(): void
+    public function test_horizon_defaults(): void
     {
         $this->assertArrayHasKey('horizon', $this->config);
-        $this->assertSame('auto', $this->config['horizon']['enabled']);
+        $this->assertArrayNotHasKey('enabled', $this->config['horizon']);
         $this->assertTrue($this->config['horizon']['intercept_purge']);
     }
 

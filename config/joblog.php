@@ -8,9 +8,9 @@ return [
     | schedule — automatic registration in Laravel Schedule
     */
     'cleanup' => [
-        'days' => 30,
-        'schedule' => false, // false, 'daily', 'weekly', 'hourly'
-        'time' => '03:00',
+        'days' => (int) env('JOBLOG_CLEANUP_DAYS', 30),
+        'schedule' => env('JOBLOG_CLEANUP_SCHEDULE', false), // false, 'daily', 'weekly', 'hourly'
+        'time' => env('JOBLOG_CLEANUP_TIME', '03:00'),
     ],
 
     /*
@@ -23,19 +23,17 @@ return [
     |
     | Set to false to write only to the database (job_log_records table).
     */
-    'console_output' => true,
+    'console_output' => (bool) env('JOBLOG_CONSOLE_OUTPUT', true),
 
     /*
     |--------------------------------------------------------------------------
     | Horizon Integration
     |--------------------------------------------------------------------------
-    | 'auto' — automatically detects Horizon availability
-    | true — always enabled (requires Horizon installed)
-    | false — disabled
+    | Horizon is detected automatically via class_exists.
+    | intercept_purge — log interrupted jobs when Horizon purges a queue.
     */
     'horizon' => [
-        'enabled' => 'auto',
-        'intercept_purge' => true,
+        'intercept_purge' => (bool) env('JOBLOG_HORIZON_INTERCEPT_PURGE', true),
     ],
 
     /*
