@@ -219,6 +219,25 @@ class SyncJob implements ShouldQueue
 }
 ```
 
+### Скрытие чувствительных аргументов
+
+Аргументы конструктора автоматически сериализуются и сохраняются в БД. Используйте атрибут PHP 8.2 `#[\SensitiveParameter]` для маскировки чувствительных значений:
+
+```php
+class SendPaymentJob implements ShouldQueue
+{
+    use Loggable;
+
+    public function __construct(
+        public readonly Order $order,
+        #[\SensitiveParameter] public readonly string $apiKey,
+        #[\SensitiveParameter] public readonly string $secretToken,
+    ) {}
+}
+```
+
+В базе данных и интерфейсе MoonShine чувствительные аргументы будут сохранены как `********`.
+
 ## Расширение ресурса
 
 Создайте кастомный ресурс, наследующий `JobLogResource`, для доменно-специфичного форматирования:
@@ -246,18 +265,17 @@ class MyJobLogResource extends JobLogResource
 return [
     // Очистка старых записей
     'cleanup' => [
-        'days' => 30,
-        'schedule' => false, // false, 'daily', 'weekly', 'hourly'
-        'time' => '03:00',
+        'days' => (int) env('JOBLOG_CLEANUP_DAYS', 30),
+        'schedule' => env('JOBLOG_CLEANUP_SCHEDULE', false), // false, 'daily', 'weekly', 'hourly'
+        'time' => env('JOBLOG_CLEANUP_TIME', '03:00'),
     ],
 
     // Вывод в консоль при выполнении artisan команд
-    'console_output' => true,
+    'console_output' => (bool) env('JOBLOG_CONSOLE_OUTPUT', true),
 
-    // Интеграция с Laravel Horizon
+    // Интеграция с Laravel Horizon (определяется автоматически)
     'horizon' => [
-        'enabled' => 'auto',       // 'auto', true или false
-        'intercept_purge' => true,  // Предотвращает удаление Horizon отслеживаемых задач
+        'intercept_purge' => (bool) env('JOBLOG_HORIZON_INTERCEPT_PURGE', true),
     ],
 
     // Пути для сканирования Loggable jobs (для выпадающего списка фильтра)

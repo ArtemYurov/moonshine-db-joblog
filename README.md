@@ -219,6 +219,25 @@ class SyncJob implements ShouldQueue
 }
 ```
 
+### Hiding sensitive arguments
+
+Constructor arguments are automatically serialized and stored in the database. Use PHP 8.2 `#[\SensitiveParameter]` attribute to mask sensitive values:
+
+```php
+class SendPaymentJob implements ShouldQueue
+{
+    use Loggable;
+
+    public function __construct(
+        public readonly Order $order,
+        #[\SensitiveParameter] public readonly string $apiKey,
+        #[\SensitiveParameter] public readonly string $secretToken,
+    ) {}
+}
+```
+
+In the database and MoonShine UI, sensitive arguments will be stored as `********`.
+
 ## Extending the resource
 
 Create a custom resource that extends `JobLogResource` to add domain-specific formatting:
@@ -246,18 +265,17 @@ class MyJobLogResource extends JobLogResource
 return [
     // Cleanup old records
     'cleanup' => [
-        'days' => 30,
-        'schedule' => false, // false, 'daily', 'weekly', 'hourly'
-        'time' => '03:00',
+        'days' => (int) env('JOBLOG_CLEANUP_DAYS', 30),
+        'schedule' => env('JOBLOG_CLEANUP_SCHEDULE', false), // false, 'daily', 'weekly', 'hourly'
+        'time' => env('JOBLOG_CLEANUP_TIME', '03:00'),
     ],
 
     // Console output during artisan commands
-    'console_output' => true,
+    'console_output' => (bool) env('JOBLOG_CONSOLE_OUTPUT', true),
 
-    // Laravel Horizon integration
+    // Laravel Horizon integration (detected automatically)
     'horizon' => [
-        'enabled' => 'auto',       // 'auto', true, or false
-        'intercept_purge' => true,  // Prevent Horizon from purging tracked jobs
+        'intercept_purge' => (bool) env('JOBLOG_HORIZON_INTERCEPT_PURGE', true),
     ],
 
     // Paths to scan for Loggable jobs (for filter dropdown)

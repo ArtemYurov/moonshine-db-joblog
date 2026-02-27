@@ -18,17 +18,17 @@ class DatabaseHandlerTest extends TestCase
         $this->assertInstanceOf(AbstractProcessingHandler::class, $handler);
     }
 
-    public function test_set_and_get_step(): void
+    public function test_set_and_get_step_id(): void
     {
         $handler = new DatabaseHandler(Level::Debug, true);
 
-        $this->assertNull($handler->getStep());
+        $this->assertNull($handler->getStepId());
 
-        $handler->setStep('load_data');
-        $this->assertSame('load_data', $handler->getStep());
+        $handler->setStepId(42);
+        $this->assertSame(42, $handler->getStepId());
 
-        $handler->setStep(null);
-        $this->assertNull($handler->getStep());
+        $handler->setStepId(null);
+        $this->assertNull($handler->getStepId());
     }
 
     public function test_default_level_is_debug(): void
