@@ -42,7 +42,7 @@ return new class extends Migration
             $table->unique('job_uuid');
             $table->index('status');
             $table->index(['job_class', 'status']);
-            $table->index(['queued_at', 'finished_at']);
+            $table->index('queued_at');
         });
     }
 

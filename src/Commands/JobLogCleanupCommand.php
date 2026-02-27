@@ -23,7 +23,7 @@ class JobLogCleanupCommand extends Command
             'date' => $cutoffDate->format('Y-m-d H:i:s'),
         ]));
 
-        $query = JobLog::where('created_at', '<', $cutoffDate);
+        $query = JobLog::where('queued_at', '<', $cutoffDate);
         $totalCount = $query->count();
 
         if ($totalCount === 0) {
