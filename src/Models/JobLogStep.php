@@ -11,6 +11,8 @@ class JobLogStep extends Model
 {
     protected $table = 'job_log_steps';
 
+    protected $guarded = [];
+
     protected function casts(): array
     {
         return [

@@ -9,6 +9,8 @@ class JobLogRecord extends Model
 {
     protected $table = 'job_log_records';
 
+    protected $guarded = [];
+
     public $timestamps = false;
 
     protected $casts = [

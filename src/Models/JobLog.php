@@ -14,6 +14,8 @@ class JobLog extends Model
 {
     protected $table = 'job_logs';
 
+    protected $guarded = [];
+
     protected $casts = [
         'queued_at' => 'datetime',
         'started_at' => 'datetime',
@@ -95,7 +97,6 @@ class JobLog extends Model
     {
         return $this->records()
             ->where('level', 'error')
-            ->whereNull('job_log_step_id')
             ->latest()
             ->orderBy('id', 'desc')
             ->first();
