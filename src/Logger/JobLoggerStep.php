@@ -21,13 +21,13 @@ class JobLoggerStep
         protected string   $stepKey,
         protected ?string  $stepName)
     {
+        $this->initStep();
+
         $databaseHandler = new DatabaseHandler(Level::Debug, true);
         $databaseHandler->setJobLog($this->jobLog);
-        $databaseHandler->setStep($this->stepKey);
+        $databaseHandler->setStepId($this->stepModel->id);
 
         $this->monolog = new Logger("joblog-step-{$this->jobLog->getKey()}-{$this->stepKey}", [$databaseHandler]);
-
-        $this->initStep();
     }
 
     public function customStatus(string $customStatus, ?string $errorMessage = null): self

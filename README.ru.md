@@ -334,7 +334,7 @@ php artisan vendor:publish --tag=joblog-lang
 |---------|-----|----------|
 | id | bigint | Первичный ключ |
 | job_log_id | bigint (FK) | Родительский лог задачи |
-| step_key | string (nullable) | Ключ шага (null для записей уровня job) |
+| job_log_step_id | bigint (FK, nullable) | Родительский шаг (null для записей уровня job) |
 | level | string(20) | Уровень лога PSR-3 |
 | message | text | Сообщение лога |
 | context | json (nullable) | Дополнительный контекст |

@@ -334,7 +334,7 @@ Files will be placed in `lang/vendor/joblog/`. Translation namespace: `joblog::j
 |--------|------|-------------|
 | id | bigint | Primary key |
 | job_log_id | bigint (FK) | Parent job log |
-| step_key | string (nullable) | Step key (null for job-level records) |
+| job_log_step_id | bigint (FK, nullable) | Parent step (null for job-level records) |
 | level | string(20) | PSR-3 log level |
 | message | text | Log message |
 | context | json (nullable) | Additional context |

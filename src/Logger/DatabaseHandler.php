@@ -10,7 +10,7 @@ use Monolog\LogRecord;
 class DatabaseHandler extends AbstractProcessingHandler
 {
     private JobLog $jobLog;
-    private ?string $stepKey = null;
+    private ?int $stepId = null;
 
     public function setJobLog(JobLog $jobLog): void
     {
@@ -22,14 +22,14 @@ class DatabaseHandler extends AbstractProcessingHandler
         return $this->jobLog;
     }
 
-    public function setStep(?string $stepKey): void
+    public function setStepId(?int $stepId): void
     {
-        $this->stepKey = $stepKey;
+        $this->stepId = $stepId;
     }
 
-    public function getStep(): ?string
+    public function getStepId(): ?int
     {
-        return $this->stepKey;
+        return $this->stepId;
     }
 
     protected function write(LogRecord $record): void
@@ -55,7 +55,7 @@ class DatabaseHandler extends AbstractProcessingHandler
 
         JobLogRecord::create([
             'job_log_id' => $this->jobLog->id,
-            'step_key' => $this->stepKey,
+            'job_log_step_id' => $this->stepId,
             'level' => strtolower($record->level->name),
             'message' => $record->message,
             'context' => !empty($context) ? $context : null,

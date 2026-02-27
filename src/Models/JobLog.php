@@ -28,7 +28,7 @@ class JobLog extends Model
     public function records(): HasMany
     {
         return $this->hasMany(JobLogRecord::class)
-            ->whereNull('step_key');
+            ->whereNull('job_log_step_id');
     }
 
     public function steps(): HasMany
@@ -49,7 +49,7 @@ class JobLog extends Model
     public function latestErrorRecord(): HasOne
     {
         return $this->hasOne(JobLogRecord::class)
-            ->whereNull('step_key')
+            ->whereNull('job_log_step_id')
             ->where('level', 'error')
             ->latestOfMany();
     }
@@ -95,7 +95,7 @@ class JobLog extends Model
     {
         return $this->records()
             ->where('level', 'error')
-            ->whereNull('step_key')
+            ->whereNull('job_log_step_id')
             ->latest()
             ->orderBy('id', 'desc')
             ->first();

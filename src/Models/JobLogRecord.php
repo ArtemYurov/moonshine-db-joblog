@@ -20,4 +20,9 @@ class JobLogRecord extends Model
     {
         return $this->belongsTo(JobLog::class);
     }
+
+    public function step(): BelongsTo
+    {
+        return $this->belongsTo(JobLogStep::class, 'job_log_step_id');
+    }
 }

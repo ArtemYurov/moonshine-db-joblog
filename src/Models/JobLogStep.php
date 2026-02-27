@@ -30,15 +30,13 @@ class JobLogStep extends Model
 
     public function records(): HasMany
     {
-        return $this->hasMany(JobLogRecord::class, 'job_log_id', 'job_log_id')
-            ->where('step_key', $this->step_key)
+        return $this->hasMany(JobLogRecord::class)
             ->orderBy('created_at', 'desc');
     }
 
     public function getLastErrorRecord(): ?JobLogRecord
     {
-        return JobLogRecord::where('job_log_id', $this->job_log_id)
-            ->where('step_key', $this->step_key)
+        return $this->records()
             ->where('level', 'error')
             ->latest('created_at')
             ->first();
@@ -46,8 +44,7 @@ class JobLogStep extends Model
 
     public function getErrorRecords()
     {
-        return JobLogRecord::where('job_log_id', $this->job_log_id)
-            ->where('step_key', $this->step_key)
+        return $this->records()
             ->where('level', 'error')
             ->orderBy('created_at', 'desc')
             ->get();

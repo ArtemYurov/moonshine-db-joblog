@@ -16,7 +16,7 @@ return new class extends Migration
             $table->id();
 
             $table->foreignId('job_log_id')->constrained('job_logs')->cascadeOnDelete();
-            $table->string('step_key')->nullable();
+            $table->foreignId('job_log_step_id')->nullable()->constrained('job_log_steps')->cascadeOnDelete();
 
             // Log level (emergency, alert, critical, error, warning, notice, info, debug)
             $table->string('level', 20);
@@ -30,7 +30,7 @@ return new class extends Migration
 
             $table->timestamp('created_at', 3)->useCurrent();
 
-            $table->index(['job_log_id', 'level', 'step_key']);
+            $table->index(['job_log_id', 'level', 'job_log_step_id']);
             $table->index(['job_log_id', 'created_at']);
         });
     }
