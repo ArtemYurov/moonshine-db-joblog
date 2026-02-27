@@ -170,9 +170,13 @@ class JobLogger
         foreach ($constructorParameters as $parameter) {
             $propertyName = $parameter->getName();
 
+            if (!empty($parameter->getAttributes(\SensitiveParameter::class))) {
+                $properties[$propertyName] = '********';
+                continue;
+            }
+
             try {
                 $property = $reflection->getProperty($propertyName);
-                $property->setAccessible(true);
 
                 if (!$property->isInitialized($jobObject)) {
                     continue;

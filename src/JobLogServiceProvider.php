@@ -8,7 +8,6 @@ use ArtemYurov\JobLog\Horizon\TagResolverInterface;
 use ArtemYurov\JobLog\Enums\JobLogStatus;
 use ArtemYurov\JobLog\Logger\JobLogger;
 use ArtemYurov\JobLog\Middleware\LoggableExceptionAttempts;
-use ArtemYurov\JobLog\Models\JobLog;
 use ArtemYurov\JobLog\Horizon\HorizonTagResolver;
 use ArtemYurov\JobLog\Horizon\NullTagResolver;
 use ArtemYurov\JobLog\Traits\Loggable;
@@ -30,13 +29,7 @@ class JobLogServiceProvider extends ServiceProvider
 
         // Register TagResolver
         $this->app->singleton(TagResolverInterface::class, function () {
-            $horizonEnabled = config('joblog.horizon.enabled', 'auto');
-
-            if ($horizonEnabled === 'auto') {
-                $horizonEnabled = class_exists(\Laravel\Horizon\Tags::class);
-            }
-
-            return $horizonEnabled ? new HorizonTagResolver() : new NullTagResolver();
+            return $this->isHorizonAvailable() ? new HorizonTagResolver() : new NullTagResolver();
         });
 
         // Optional Horizon purge interceptor
@@ -103,17 +96,7 @@ class JobLogServiceProvider extends ServiceProvider
      */
     private function registerHorizonPurgeInterceptor(): void
     {
-        $horizonEnabled = config('joblog.horizon.enabled', 'auto');
-
-        if ($horizonEnabled === 'auto') {
-            $horizonEnabled = class_exists(\Laravel\Horizon\Repositories\RedisJobRepository::class);
-        }
-
-        if (!$horizonEnabled || !config('joblog.horizon.intercept_purge', true)) {
-            return;
-        }
-
-        if (!class_exists(\Laravel\Horizon\Contracts\JobRepository::class)) {
+        if (!$this->isHorizonAvailable() || !config('joblog.horizon.intercept_purge', true)) {
             return;
         }
 
@@ -162,14 +145,7 @@ class JobLogServiceProvider extends ServiceProvider
 
         Event::listen(JobProcessed::class, function (JobProcessed $event) {
             if ($this->isEventPayloadLoggableJob($event)) {
-                $uuid = $event->job->uuid();
-                $currentStatus = JobLog::findByJobUuid($uuid)->status ?? null;
-
-                // Don't change status if job already has a final status
-                if (in_array($currentStatus, [JobLogStatus::FAILED, JobLogStatus::INTERRUPTED]))
-                    return;
-
-                JobLogger::changeStatusFromEvent($uuid, JobLogStatus::PROCESSED);
+                JobLogger::changeStatusFromEvent($event->job->uuid(), JobLogStatus::PROCESSED);
             }
         });
 
@@ -182,6 +158,11 @@ class JobLogServiceProvider extends ServiceProvider
                 JobLogger::changeStatusFromEvent($event->job->uuid(), JobLogStatus::FAILED, $exception);
             }
         });
+    }
+
+    private function isHorizonAvailable(): bool
+    {
+        return class_exists(\Laravel\Horizon\Contracts\JobRepository::class);
     }
 
     private function isLoggableJob(object $jobObject): bool
