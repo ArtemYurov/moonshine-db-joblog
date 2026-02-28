@@ -6,7 +6,6 @@ namespace ArtemYurov\JobLog\MoonShine\Pages;
 
 use ArtemYurov\JobLog\Enums\JobLogStatus;
 use ArtemYurov\JobLog\Models\JobLog;
-use ArtemYurov\JobLog\Support\JobClassDiscovery;
 use Illuminate\Database\Eloquent\Builder;
 use MoonShine\AssetManager\InlineCss;
 use MoonShine\Contracts\UI\ActionButtonContract;
@@ -168,7 +167,10 @@ class JobLogIndexPage extends IndexPage
 
     private function getJobClassOptions(): array
     {
-        return JobClassDiscovery::discover()
+        return JobLog::select('job_class')
+            ->distinct()
+            ->whereNotNull('job_class')
+            ->pluck('job_class')
             ->mapWithKeys(fn($class) => [$class => class_basename($class)])
             ->toArray();
     }
