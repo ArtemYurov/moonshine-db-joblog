@@ -7,6 +7,7 @@ use ArtemYurov\JobLog\Commands\JobLogTruncateCommand;
 use ArtemYurov\JobLog\Horizon\TagResolverInterface;
 use ArtemYurov\JobLog\Enums\JobLogStatus;
 use ArtemYurov\JobLog\Logger\JobLogger;
+use ArtemYurov\JobLog\Models\JobLog;
 use ArtemYurov\JobLog\Middleware\LoggableExceptionAttempts;
 use ArtemYurov\JobLog\Horizon\HorizonTagResolver;
 use ArtemYurov\JobLog\Horizon\NullTagResolver;
@@ -145,7 +146,15 @@ class JobLogServiceProvider extends ServiceProvider
 
         Event::listen(JobProcessed::class, function (JobProcessed $event) {
             if ($this->isEventPayloadLoggableJob($event)) {
-                JobLogger::changeStatusFromEvent($event->job->uuid(), JobLogStatus::PROCESSED);
+                $uuid = $event->job->uuid();
+                $currentStatus = JobLog::findByJobUuid($uuid)->status ?? null;
+
+                // Don't overwrite final status (job may call failed() inside handle())
+                if (in_array($currentStatus, [JobLogStatus::FAILED, JobLogStatus::INTERRUPTED])) {
+                    return;
+                }
+
+                JobLogger::changeStatusFromEvent($uuid, JobLogStatus::PROCESSED);
             }
         });
 
