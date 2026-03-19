@@ -3,14 +3,14 @@
 namespace ArtemYurov\JobLog\Traits;
 
 use ArtemYurov\JobLog\Enums\JobLogStatus;
+use ArtemYurov\JobLog\Logger\PsrLogger;
 use ArtemYurov\JobLog\Models\JobLogStep;
-use ArtemYurov\JobLog\Support\SimpleCliDumper;
 use Carbon\Carbon;
-use Monolog\Logger;
+use Psr\Log\LoggerInterface;
 
 trait JobLoggerMethods
 {
-    protected Logger $monolog;
+    protected PsrLogger $psrLogger;
 
     public function start(): self
     {
@@ -171,91 +171,67 @@ trait JobLoggerMethods
         return (int) min(100, round(($current / $total) * 100));
     }
 
-    // PSR-3 LoggerInterface methods with console output
+    /**
+     * Returns PSR-3 LoggerInterface for dependency injection into services.
+     */
+    public function getLoggerInterface(): LoggerInterface
+    {
+        return $this->psrLogger;
+    }
+
+    // PSR-3 methods — delegate to PsrLogger, fluent return self
     public function emergency(string|\Stringable $message, array $context = []): self
     {
-        $this->consoleLog('EMERGENCY', (string)$message, $context, "\033[1;37;45m", "\033[0m");
-        $this->monolog->emergency($message, $context);
+        $this->psrLogger->emergency($message, $context);
         return $this;
     }
 
     public function alert(string|\Stringable $message, array $context = []): self
     {
-        $this->consoleLog('ALERT', (string)$message, $context, "\033[1;37;41m", "\033[0m");
-        $this->monolog->alert($message, $context);
+        $this->psrLogger->alert($message, $context);
         return $this;
     }
 
     public function critical(string|\Stringable $message, array $context = []): self
     {
-        $this->consoleLog('CRITICAL', (string)$message, $context, "\033[1;37;41m", "\033[0m");
-        $this->monolog->critical($message, $context);
+        $this->psrLogger->critical($message, $context);
         return $this;
     }
 
     public function error(string|\Stringable $message, array $context = []): self
     {
-        $this->consoleLog('ERROR', (string)$message, $context, "\033[0;37;41m", "\033[0m");
-        $this->monolog->error($message, $context);
+        $this->psrLogger->error($message, $context);
         return $this;
     }
 
     public function warning(string|\Stringable $message, array $context = []): self
     {
-        $this->consoleLog('WARNING', (string)$message, $context, "\033[0;30;43m", "\033[0m");
-        $this->monolog->warning($message, $context);
+        $this->psrLogger->warning($message, $context);
         return $this;
     }
 
     public function notice(string|\Stringable $message, array $context = []): self
     {
-        $this->consoleLog('NOTICE', (string)$message, $context, "\033[0;36m", "\033[0m");
-        $this->monolog->notice($message, $context);
+        $this->psrLogger->notice($message, $context);
         return $this;
     }
 
     public function info(string|\Stringable $message, array $context = []): self
     {
-        $this->consoleLog('INFO', (string)$message, $context, "\033[0;32m", "\033[0m");
-        $this->monolog->info($message, $context);
+        $this->psrLogger->info($message, $context);
         return $this;
     }
 
     public function debug(string|\Stringable $message, array $context = []): self
     {
-        $this->consoleLog('DEBUG', (string)$message, $context, "\033[0;33m", "\033[0m");
-        $this->monolog->debug($message, $context);
+        $this->psrLogger->debug($message, $context);
         return $this;
     }
 
     public function log($level, string|\Stringable $message, array $context = []): self
     {
-        $this->consoleLog(strtoupper((string)$level), (string)$message, $context, "\033[0;37m", "\033[0m");
-        $this->monolog->log($level, $message, $context);
+        $this->psrLogger->log($level, $message, $context);
         return $this;
-    }
-
-    protected function consoleLog(string $level, string $message, array $context, string $colorStart, string $colorEnd): void
-    {
-        if (!config('joblog.console_output', true)) {
-            return;
-        }
-
-        if (app()->runningInConsole()) {
-            echo "{$colorStart}[{$level}]{$colorEnd} {$message}" . PHP_EOL;
-
-            if (!empty($context)) {
-                $this->dumpWithoutTrace($context);
-            }
-        }
-    }
-
-    protected function dumpWithoutTrace($data): void
-    {
-        $cloner = new \Symfony\Component\VarDumper\Cloner\VarCloner();
-        $dumper = new SimpleCliDumper();
-
-        $dumper->dump($cloner->cloneVar($data));
     }
 
     abstract protected function getModel();

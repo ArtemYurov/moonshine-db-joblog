@@ -27,7 +27,8 @@ class JobLoggerStep
         $databaseHandler->setJobLog($this->jobLog);
         $databaseHandler->setStepId($this->stepModel->id);
 
-        $this->monolog = new Logger("joblog-step-{$this->jobLog->getKey()}-{$this->stepKey}", [$databaseHandler]);
+        $monolog = new Logger("joblog-step-{$this->jobLog->getKey()}-{$this->stepKey}", [$databaseHandler]);
+        $this->psrLogger = new PsrLogger($monolog, "[STEP: {$this->stepKey}]");
     }
 
     public function customStatus(string $customStatus, ?string $errorMessage = null): self
@@ -62,20 +63,5 @@ class JobLoggerStep
     protected function getModel()
     {
         return $this->stepModel;
-    }
-
-    protected function consoleLog(string $level, string $message, array $context, string $colorStart, string $colorEnd): void
-    {
-        if (!config('joblog.console_output', true)) {
-            return;
-        }
-
-        if (app()->runningInConsole()) {
-            echo "\033[1m[STEP: {$this->stepKey}]\033[0m {$colorStart}[{$level}]{$colorEnd} {$message}" . PHP_EOL;
-
-            if (!empty($context)) {
-                $this->dumpWithoutTrace($context);
-            }
-        }
     }
 }

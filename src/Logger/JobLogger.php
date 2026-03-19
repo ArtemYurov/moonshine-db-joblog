@@ -11,6 +11,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Str;
 use Monolog\Level;
 use Monolog\Logger;
+use Psr\Log\LoggerInterface;
 use ReflectionClass;
 
 class JobLogger
@@ -33,7 +34,8 @@ class JobLogger
         $databaseHandler = new DatabaseHandler(Level::Debug, true);
         $databaseHandler->setJobLog($this->jobLog);
 
-        $this->monolog = new Logger("joblog-{$this->jobLog->getKey()}", [$databaseHandler]);
+        $monolog = new Logger("joblog-{$this->jobLog->getKey()}", [$databaseHandler]);
+        $this->psrLogger = new PsrLogger($monolog);
     }
 
     /**
