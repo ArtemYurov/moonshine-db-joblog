@@ -162,6 +162,14 @@ trait JobLoggerMethods
         return $this->getModel() instanceof JobLogStep;
     }
 
+    protected function isConsoleOutputEnabled(): bool
+    {
+        return function_exists('config')
+            && config('joblog.console_output', true)
+            && function_exists('app')
+            && app()->runningInConsole();
+    }
+
     protected function calculateProgressPercent(int $current, int $total): int
     {
         if ($total === 0) {

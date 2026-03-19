@@ -26,20 +26,20 @@ class PsrLogger extends AbstractLogger
     public function __construct(
         private Logger  $monolog,
         private ?string $consolePrefix = null,
+        private bool    $consoleOutput = false,
     ) {}
 
     public function log($level, string|\Stringable $message, array $context = []): void
     {
-        $this->consoleLog($level, (string) $message, $context);
+        if ($this->consoleOutput) {
+            $this->consoleLog($level, (string) $message, $context);
+        }
+
         $this->monolog->log($level, $message, $context);
     }
 
     private function consoleLog(mixed $level, string $message, array $context): void
     {
-        if (!config('joblog.console_output', true) || !app()->runningInConsole()) {
-            return;
-        }
-
         $levelStr = strtoupper(is_string($level) ? $level : ($level->name ?? (string) $level));
         $color = self::$levelColors[$levelStr] ?? "\033[0;37m";
         $prefix = $this->consolePrefix ? "\033[1m{$this->consolePrefix}\033[0m " : '';

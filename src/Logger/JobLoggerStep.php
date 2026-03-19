@@ -17,10 +17,10 @@ class JobLoggerStep
     protected ?JobLogStep $stepModel = null;
 
     public function __construct(
-        protected JobLog   $jobLog,
-        protected string   $stepKey,
-        protected ?string  $stepName)
-    {
+        protected JobLog  $jobLog,
+        protected string  $stepKey,
+        protected ?string $stepName,
+    ) {
         $this->initStep();
 
         $databaseHandler = new DatabaseHandler(Level::Debug, true);
@@ -28,7 +28,7 @@ class JobLoggerStep
         $databaseHandler->setStepId($this->stepModel->id);
 
         $monolog = new Logger("joblog-step-{$this->jobLog->getKey()}-{$this->stepKey}", [$databaseHandler]);
-        $this->psrLogger = new PsrLogger($monolog, "[STEP: {$this->stepKey}]");
+        $this->psrLogger = new PsrLogger($monolog, "[STEP: {$this->stepKey}]", $this->isConsoleOutputEnabled());
     }
 
     public function customStatus(string $customStatus, ?string $errorMessage = null): self
