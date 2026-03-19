@@ -77,6 +77,7 @@ class JobLogResource extends ModelResource
             })->align('right')->columnSelection(),
             Number::make('', 'progress', fn($value) => $value->progress . '%')->align('right')->columnSelection(),
             Enum::make(__('joblog::joblog.field.status'), 'status')->attach(JobLogStatus::class)->sortable()->bold()->customAttributes(['style' => 'white-space:nowrap']),
+            Text::make(__('joblog::joblog.field.custom_status'), 'custom_status')->columnSelection(),
             Number::make('', 'runtime_seconds', fn($item) => $item->runtime_seconds ? "{$item->runtime_seconds}\u{00A0}s" : '')->align('right')->columnSelection(),
         ];
     }
@@ -99,6 +100,7 @@ class JobLogResource extends ModelResource
             Date::make(__('joblog::joblog.field.finished_at'), 'finished_at')->withTime(),
             Number::make(__('joblog::joblog.field.progress'), 'progress'),
             Enum::make(__('joblog::joblog.field.status'), 'status')->attach(JobLogStatus::class),
+            Text::make(__('joblog::joblog.field.custom_status'), 'custom_status'),
             Number::make(__('joblog::joblog.field.runtime'), 'runtime_seconds'),
             Json::make(__('joblog::joblog.field.data'), 'data')->keyValue(),
             HasMany::make(__('joblog::joblog.field.steps'), 'steps', resource: JobLogStepResource::class)->searchable(false)->withoutModals(),

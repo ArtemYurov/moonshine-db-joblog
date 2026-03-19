@@ -12,6 +12,17 @@ trait JobLoggerMethods
 {
     protected PsrLogger $psrLogger;
 
+    public function customStatus(string $customStatus, ?string $errorMessage = null): self
+    {
+        $this->getModel()->update(['custom_status' => $customStatus]);
+
+        if ($errorMessage) {
+            $this->error($errorMessage);
+        }
+
+        return $this;
+    }
+
     public function start(): self
     {
         return $this->processing();

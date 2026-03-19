@@ -31,17 +31,6 @@ class JobLoggerStep
         $this->psrLogger = new PsrLogger($monolog, "[STEP: {$this->stepKey}]", $this->isConsoleOutputEnabled());
     }
 
-    public function customStatus(string $customStatus, ?string $errorMessage = null): self
-    {
-        $this->getModel()->update(['custom_status' => $customStatus]);
-
-        if ($errorMessage) {
-            $this->error($errorMessage);
-        }
-
-        return $this;
-    }
-
     public function getStatus(): JobLogStatus
     {
         return $this->stepModel->status;

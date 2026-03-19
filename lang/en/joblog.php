@@ -39,6 +39,7 @@ return [
         'records' => 'Log Records',
         'pid' => 'PID',
         'tags' => 'Tags',
+        'custom_status' => 'Custom Status',
     ],
 
     // Поля — шаги
