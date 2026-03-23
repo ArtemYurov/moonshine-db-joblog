@@ -37,7 +37,7 @@ class JobLogResource extends ModelResource
     protected SortDirection $sortDirection = SortDirection::DESC;
     protected bool $saveQueryState = true;
 
-    protected array $with = ['latestStep', 'latestErrorRecord', 'related'];
+    protected array $with = ['latestStep', 'latestErrorRecord'];
 
     protected function pages(): array
     {
@@ -67,7 +67,7 @@ class JobLogResource extends ModelResource
             Text::make(__('joblog::joblog.field.connection'), 'connection')->columnSelection(),
             Text::make(__('joblog::joblog.field.queue'), 'queue')->columnSelection(),
             Text::make(__('joblog::joblog.field.job_class'), 'job_class', formatted: fn($item) => class_basename($item->job_class))->columnSelection(),
-            Text::make(__('joblog::joblog.field.related'), 'related', formatted: fn($item) => $this->formatRelated($item))->columnSelection(),
+            Text::make(__('joblog::joblog.field.related'), 'related_type', formatted: fn($item) => $this->formatRelated($item))->columnSelection(),
             Date::make(__('joblog::joblog.field.queued_at'), 'queued_at')->withTime()->changePreview(fn($value) => $this->formatDateTimeWithBreak($value))->sortable()->columnSelection(),
             Date::make(__('joblog::joblog.field.started_at'), 'started_at')->withTime()->changePreview(fn($value) => $this->formatDateTimeWithBreak($value))->sortable()->columnSelection(),
             Date::make(__('joblog::joblog.field.finished_at'), 'finished_at')->withTime()->changePreview(fn($value) => $this->formatDateTimeWithBreak($value))->sortable()->columnSelection(),
@@ -94,7 +94,7 @@ class JobLogResource extends ModelResource
             Text::make(__('joblog::joblog.field.job_uuid'), 'job_uuid'),
             Text::make(__('joblog::joblog.field.job_class'), 'job_class'),
             Textarea::make(__('joblog::joblog.field.args'), 'args'),
-            Text::make(__('joblog::joblog.field.related'), 'related', formatted: fn($item) => $this->formatRelated($item)),
+            Text::make(__('joblog::joblog.field.related'), 'related_type', formatted: fn($item) => $this->formatRelated($item)),
             Date::make(__('joblog::joblog.field.queued_at'), 'queued_at')->withTime(),
             Date::make(__('joblog::joblog.field.started_at'), 'started_at')->withTime(),
             Date::make(__('joblog::joblog.field.finished_at'), 'finished_at')->withTime(),
@@ -119,12 +119,12 @@ class JobLogResource extends ModelResource
 
     protected function formatRelated(JobLog $item): string
     {
-        if (!$item->related) {
+        if (!$item->related_type) {
             return '-';
         }
 
-        $class = class_basename(get_class($item->related));
-        $id = $item->related->getKey();
+        $class = class_basename($item->related_type);
+        $id = $item->related_id;
 
         return "{$class}:{$id}";
     }
