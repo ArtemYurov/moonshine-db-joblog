@@ -18,15 +18,13 @@ src/
 │   └── JobLogTruncateCommand.php
 ├── Enums/                     # Domain: Status enumerations
 │   └── JobLogStatus.php
-├── Horizon/                   # Infrastructure: Laravel Horizon integration
-│   ├── HorizonTagResolver.php
-│   ├── LoggableRedisJobRepository.php
-│   ├── NullTagResolver.php
-│   └── TagResolverInterface.php
+├── Horizon/                   # Infrastructure: Laravel Horizon integration (optional)
+│   └── LoggableRedisJobRepository.php
 ├── Logger/                    # Business Logic: Core logging engine
 │   ├── DatabaseHandler.php
 │   ├── JobLogger.php
-│   └── JobLoggerStep.php
+│   ├── JobLoggerStep.php
+│   └── PsrLogger.php
 ├── Middleware/                 # Business Logic: Job middleware
 │   └── LoggableExceptionAttempts.php
 ├── Models/                    # Data Access: Eloquent models
@@ -40,6 +38,8 @@ src/
 ├── Support/                   # Infrastructure: Utilities
 │   ├── JobClassDiscovery.php
 │   └── SimpleCliDumper.php
+├── Tags/                      # Infrastructure: Job tag extraction
+│   └── TagResolver.php
 ├── Traits/                    # Public API: Integration traits for user jobs
 │   ├── Loggable.php
 │   └── JobLoggerMethods.php
@@ -60,12 +60,13 @@ Business Logic (Logger, Middleware)
       ↓
 Data Access (Models, Enums)
       ↓
-Infrastructure (Horizon, Support)
+Infrastructure (Horizon, Support, Tags)
 ```
 
 - ✅ Commands → Logger (commands invoke logging operations)
 - ✅ MoonShine Resources → Models (admin displays model data)
 - ✅ Logger → Models (persists log data via Eloquent)
+- ✅ Logger → TagResolver (resolves tags for job entries)
 - ✅ Middleware → Logger (intercepts job exceptions, delegates to logger)
 - ✅ Traits → Logger (public API delegates to core logger)
 - ❌ Models → Logger (data layer must not depend on business logic)
@@ -78,14 +79,15 @@ Infrastructure (Horizon, Support)
 - **Package → Database:** Via Eloquent models and Monolog DatabaseHandler
 - **Package → Console:** Via `SimpleCliDumper` for colored CLI output
 - **Package → MoonShine:** Via MoonShine Resources reading Eloquent models
-- **Package → Horizon:** Via `TagResolverInterface` abstraction (auto-detected)
+- **Package → Horizon:** Via `LoggableRedisJobRepository` (optional, auto-detected via `interface_exists`)
+- **Package → Tags:** Via `TagResolver` — standalone reflection-based tag extraction (no Horizon dependency)
 
 ## Key Principles
 
 1. **Single entry point for users** — The `Loggable` trait is the only thing users add to their jobs. All complexity is hidden behind this trait.
 2. **Service Provider as Composition Root** — `JobLogServiceProvider` registers all bindings, migrations, config, and commands. No other class should register services.
 3. **Eloquent Models are data containers** — Models hold schema definitions, relationships, scopes, and casts. Business logic lives in `Logger/` classes.
-4. **Infrastructure is swappable** — Horizon integration uses `TagResolverInterface` with `NullTagResolver` fallback. Console output is optional via config.
+4. **No hard dependencies on optional packages** — Horizon integration is guarded by `interface_exists()`. Tag resolution is standalone in `Tags/TagResolver`.
 5. **Follow Laravel conventions** — Use Laravel naming (Models, Commands, Middleware), PSR-4 autoloading, config publishing, migration auto-loading.
 
 ## Code Examples
@@ -112,12 +114,8 @@ class JobLogServiceProvider extends ServiceProvider
     {
         $this->mergeConfigFrom(__DIR__.'/../config/joblog.php', 'joblog');
 
-        // Привязка интерфейса к реализации (Horizon или Null)
-        $this->app->singleton(TagResolverInterface::class, function () {
-            return class_exists(\Laravel\Horizon\Horizon::class)
-                ? new HorizonTagResolver()
-                : new NullTagResolver();
-        });
+        // TagResolver — конкретный класс, без интерфейса (единственная реализация)
+        $this->app->singleton(TagResolver::class);
     }
 }
 ```
@@ -150,6 +148,7 @@ class JobLog extends Model
 
 - ❌ **Бизнес-логика в моделях** — Не добавляйте методы типа `$jobLog->markAsProcessing()` с побочными эффектами (console output, записи в другие таблицы). Такая логика принадлежит `JobLogger`.
 - ❌ **Прямые запросы в MoonShine Resources** — Не пишите raw SQL или сложную бизнес-логику в ресурсах. Используйте скоупы моделей и отношения.
-- ❌ **Зависимость от Horizon без проверки** — Всегда используйте `TagResolverInterface` и проверяйте наличие Horizon через `class_exists()`.
+- ❌ **Интерфейсы для единственной реализации** — Не создавайте интерфейс, если есть только один конкретный класс. Биндите конкретный класс напрямую.
 - ❌ **Хардкод конфигурации** — Все настраиваемые параметры должны быть в `config/joblog.php`, а не захардкожены в классах.
 - ❌ **Нарушение PSR-4** — Namespace `ArtemYurov\JobLog\` должен соответствовать структуре папок `src/`. Не создавайте классы вне этой иерархии.
+- ❌ **class_exists() для интерфейсов** — Для проверки наличия интерфейса используйте `interface_exists()`, а не `class_exists()`.
