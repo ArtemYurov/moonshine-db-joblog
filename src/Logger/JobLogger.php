@@ -2,7 +2,7 @@
 
 namespace ArtemYurov\JobLog\Logger;
 
-use ArtemYurov\JobLog\Horizon\TagResolverInterface;
+use ArtemYurov\JobLog\Tags\TagResolver;
 use ArtemYurov\JobLog\Enums\JobLogStatus;
 use ArtemYurov\JobLog\Models\JobLog;
 use ArtemYurov\JobLog\Traits\JobLoggerMethods;
@@ -50,8 +50,8 @@ class JobLogger
 
         $queueName = Str::replaceFirst('queues:', '', $queue);
 
-        /** @var TagResolverInterface $tagResolver */
-        $tagResolver = app(TagResolverInterface::class);
+        /** @var TagResolver $tagResolver */
+        $tagResolver = app(TagResolver::class);
         $tags = $tagResolver->resolve($jobObject);
 
         JobLog::create([

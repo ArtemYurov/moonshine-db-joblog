@@ -4,13 +4,11 @@ namespace ArtemYurov\JobLog;
 
 use ArtemYurov\JobLog\Commands\JobLogCleanupCommand;
 use ArtemYurov\JobLog\Commands\JobLogTruncateCommand;
-use ArtemYurov\JobLog\Horizon\TagResolverInterface;
+use ArtemYurov\JobLog\Tags\TagResolver;
 use ArtemYurov\JobLog\Enums\JobLogStatus;
 use ArtemYurov\JobLog\Logger\JobLogger;
 use ArtemYurov\JobLog\Models\JobLog;
 use ArtemYurov\JobLog\Middleware\LoggableExceptionAttempts;
-use ArtemYurov\JobLog\Horizon\HorizonTagResolver;
-use ArtemYurov\JobLog\Horizon\NullTagResolver;
 use ArtemYurov\JobLog\Traits\Loggable;
 use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Queue\Events\JobProcessed;
@@ -29,9 +27,7 @@ class JobLogServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(__DIR__ . '/../config/joblog.php', 'joblog');
 
         // Register TagResolver
-        $this->app->singleton(TagResolverInterface::class, function () {
-            return $this->isHorizonAvailable() ? new HorizonTagResolver() : new NullTagResolver();
-        });
+        $this->app->singleton(TagResolver::class);
 
         // Optional Horizon purge interceptor
         $this->registerHorizonPurgeInterceptor();
@@ -97,7 +93,9 @@ class JobLogServiceProvider extends ServiceProvider
      */
     private function registerHorizonPurgeInterceptor(): void
     {
-        if (!$this->isHorizonAvailable() || !config('joblog.horizon.intercept_purge', true)) {
+        if (!interface_exists(\Laravel\Horizon\Contracts\JobRepository::class)
+            || !config('joblog.horizon.intercept_purge', true)
+        ) {
             return;
         }
 
@@ -167,11 +165,6 @@ class JobLogServiceProvider extends ServiceProvider
                 JobLogger::changeStatusFromEvent($event->job->uuid(), JobLogStatus::FAILED, $exception);
             }
         });
-    }
-
-    private function isHorizonAvailable(): bool
-    {
-        return class_exists(\Laravel\Horizon\Contracts\JobRepository::class);
     }
 
     private function isLoggableJob(object $jobObject): bool
