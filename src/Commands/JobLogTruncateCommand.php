@@ -9,7 +9,7 @@ use Illuminate\Console\Command;
 
 class JobLogTruncateCommand extends Command
 {
-    protected $signature = 'joblog:truncate';
+    protected $signature = 'joblog:truncate {--force : Skip confirmation prompt}';
 
     protected $description = 'Truncate all JobLog records';
 
@@ -22,7 +22,7 @@ class JobLogTruncateCommand extends Command
             return self::SUCCESS;
         }
 
-        if (!$this->confirm(__('joblog::joblog.command.truncate_confirm', ['count' => $totalCount]))) {
+        if (!$this->option('force') && !$this->confirm(__('joblog::joblog.command.truncate_confirm', ['count' => $totalCount]))) {
             $this->info(__('joblog::joblog.command.truncate_cancelled'));
             return self::SUCCESS;
         }
