@@ -76,7 +76,7 @@ class JobLogResource extends ModelResource
                 return $item->latestStep ? $item->latestStep->step_key : '-';
             })->align('right')->columnSelection(),
             Number::make('', 'progress', fn($value) => $value->progress . '%')->align('right')->columnSelection(),
-            Enum::make(__('joblog::joblog.field.status'), 'status')->attach(JobLogStatus::class)->sortable()->bold()->customAttributes(['style' => 'white-space:nowrap']),
+            Enum::make(__('joblog::joblog.field.status'), 'status')->attach(JobLogStatus::class)->sortable()->bold()->customWrapperAttributes(['style' => 'white-space:nowrap']),
             Text::make(__('joblog::joblog.field.custom_status'), 'custom_status')->columnSelection(),
             Number::make('', 'runtime_seconds', fn($item) => $item->runtime_seconds ? "{$item->runtime_seconds}\u{00A0}s" : '')->align('right')->columnSelection(),
         ];
