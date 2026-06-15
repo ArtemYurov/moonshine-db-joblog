@@ -5,9 +5,9 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
-        "illuminate/support": "^11.0|^12.0",
-        "illuminate/database": "^11.0|^12.0",
-        "illuminate/queue": "^11.0|^12.0",
+        "illuminate/support": "^11.0|^12.0|^13.0",
+        "illuminate/database": "^11.0|^12.0|^13.0",
+        "illuminate/queue": "^11.0|^12.0|^13.0",
         "monolog/monolog": "^3.0",
         "symfony/var-dumper": "^7.0",
         "moonshine/moonshine": "^4.0"
