@@ -130,7 +130,10 @@ trait JobLoggerMethods
         }
 
         $endTime = $finishedAt ?? Carbon::now();
-        return $endTime->diffInSeconds($model->started_at);
+
+        // Cast explicitly: diffInSeconds returns a float, and a sub-second
+        // runtime would otherwise trigger an implicit float→int deprecation.
+        return (int) $endTime->diffInSeconds($model->started_at);
     }
 
     public function updateStatus(JobLogStatus $status, ?\Throwable $exception = null): self

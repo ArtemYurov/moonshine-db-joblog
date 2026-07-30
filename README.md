@@ -21,13 +21,14 @@ Track your queue jobs in real-time: statuses, steps, progress, errors — all vi
 - Color-coded console output during `artisan` execution
 - MoonShine admin resources with filters, query tags, and detail views
 - Laravel Horizon integration (tag resolution, purge interception)
+- "Without overlapping" middleware — serialize job execution by tags via the JobLog table (no cache lock), opted in by an external orchestrator
 - Configurable cleanup schedule and job scan paths
 - i18n support (EN, RU out of the box)
 
 ## Requirements
 
 - PHP 8.2+
-- Laravel 11.x or 12.x
+- Laravel 11.x, 12.x or 13.x
 - MoonShine 4.x
 
 ## Installation
@@ -247,6 +248,40 @@ class SendPaymentJob implements ShouldQueue
 ```
 
 In the database and MoonShine UI, sensitive arguments will be stored as `********`.
+
+### Preventing overlapping runs (serialize by tags)
+
+`ArtemYurov\JobLog\Middleware\JobLogWithoutOverlapping` serializes Loggable jobs by their JobLog
+tags: when a worker picks up a job whose tags are already `PROCESSING` on a peer, the run waits or
+is dropped — both settling to Laravel's canonical `PROCESSED`/`FAILED` (no custom status), backed by
+the JobLog table (no cache lock). The package doesn't attach it — an orchestrator
+([`moonshine-command-schedule-job`](https://github.com/ArtemYurov/moonshine-command-schedule-job))
+opts a job in at dispatch time; tags come from the job's own JobLog entry.
+
+#### Serialize vs drop
+
+The mode is encoded through the release delay, mirroring the native
+`Illuminate\Queue\Middleware\WithoutOverlapping`:
+
+```php
+new JobLogWithoutOverlapping(30);                   // serialize: wait 30s and retry
+(new JobLogWithoutOverlapping())->releaseAfter(30); // same, fluent
+(new JobLogWithoutOverlapping())->dontRelease();    // drop the redundant run
+```
+
+- **serialize** (`releaseAfter` set): released back to the queue and retried until the tags free
+  up → `PROCESSED` (eventually ran) or `FAILED` (`tries`/`retryUntil` ran out).
+- **drop** (`dontRelease()`, `releaseAfter = null`): returns without executing — the peer is
+  already doing the work, so this run is redundant → `PROCESSED` via Laravel's success lifecycle.
+  On the sync queue `release()` is a no-op, so a serialized run also just settles to `PROCESSED`.
+
+> **Important:** `release()` increments `attempts()`, so a serialized job **must** tolerate retries
+> (`$tries > 1` or `retryUntil()`) — otherwise the first release exhausts its single attempt and it
+> fails with `MaxAttemptsExceeded`. That is what bounds a serialized job to `FAILED` instead of
+> releasing forever.
+
+The check is a `SELECT` with a `queued_at`+`uuid` tie-break; a fully-concurrent race is a known
+(rare) TOCTOU window.
 
 ## Extending the resource
 

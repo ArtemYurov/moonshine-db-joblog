@@ -144,6 +144,14 @@ class JobLogger
     }
 
     /**
+     * The JobLog entry this logger is bound to (the job's own record).
+     */
+    public function getJobLog(): JobLog
+    {
+        return $this->jobLog;
+    }
+
+    /**
      * Extract constructor arguments and first Eloquent model (related)
      *
      * If job defines related() method, it is used.
