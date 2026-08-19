@@ -14,6 +14,7 @@ use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Queue\Events\JobProcessed;
 use Illuminate\Queue\Events\JobProcessing;
 use Illuminate\Queue\Events\JobQueued;
+use Illuminate\Queue\Events\JobReleasedAfterException;
 use Illuminate\Queue\MaxAttemptsExceededException;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Event;
@@ -145,6 +146,16 @@ class JobLogServiceProvider extends ServiceProvider
         Event::listen(JobProcessed::class, function (JobProcessed $event) {
             if ($this->isEventPayloadLoggableJob($event)) {
                 $uuid = $event->job->uuid();
+
+                // Raised unconditionally after fire(), so it covers a job that released
+                // itself instead of finishing. PROCESSED would claim work that has not
+                // happened, hide the job from the dispatch guard and leave its pid behind.
+                if ($event->job->isReleased()) {
+                    JobLogger::changeStatusFromEvent($uuid, JobLogStatus::QUEUED);
+
+                    return;
+                }
+
                 $currentStatus = JobLog::findByJobUuid($uuid)->status ?? null;
 
                 // Don't overwrite final status (job may call failed() inside handle())
@@ -153,6 +164,14 @@ class JobLogServiceProvider extends ServiceProvider
                 }
 
                 JobLogger::changeStatusFromEvent($uuid, JobLogStatus::PROCESSED);
+            }
+        });
+
+        // A retryable exception releases the job and never raises JobProcessed, so the
+        // row would otherwise keep claiming PROCESSING with a pid that left it.
+        Event::listen(JobReleasedAfterException::class, function (JobReleasedAfterException $event) {
+            if ($this->isEventPayloadLoggableJob($event)) {
+                JobLogger::changeStatusFromEvent($event->job->uuid(), JobLogStatus::QUEUED);
             }
         });
 
@@ -189,7 +208,7 @@ class JobLogServiceProvider extends ServiceProvider
         return false;
     }
 
-    private function isEventPayloadLoggableJob(JobProcessing|JobProcessed|JobFailed $event): bool
+    private function isEventPayloadLoggableJob(JobProcessing|JobProcessed|JobFailed|JobReleasedAfterException $event): bool
     {
         return method_exists($event->job, 'payload') ? $event->job->payload()['isLoggableJob'] ?? false : false;
     }

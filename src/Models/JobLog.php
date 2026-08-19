@@ -56,6 +56,40 @@ class JobLog extends Model
             ->latestOfMany();
     }
 
+    /**
+     * Does this record still credibly claim the job is active?
+     *
+     * QUEUED means waiting, which needs no process. PROCESSING is a claim that only
+     * holds while the worker that made it exists — nothing writes a final status when
+     * one is killed outright, so a dead pid is how such a row is recognised.
+     */
+    public function isActive(): bool
+    {
+        return match ($this->status) {
+            JobLogStatus::QUEUED => true,
+            JobLogStatus::PROCESSING => $this->pidIsAlive(),
+            default => false,
+        };
+    }
+
+    /**
+     * Is the process recorded in `pid` still running? This is what overlap protection
+     * treats as busy. Without ext-posix a recorded pid counts as live. Pid reuse can
+     * only make a dead process look alive, never the reverse.
+     */
+    public function pidIsAlive(): bool
+    {
+        if ($this->pid === null) {
+            return false;
+        }
+
+        if (!extension_loaded('posix')) {
+            return true;
+        }
+
+        return posix_getpgid($this->pid) !== false;
+    }
+
     public static function findByJobUuid(string $jobUuid): self
     {
         try {

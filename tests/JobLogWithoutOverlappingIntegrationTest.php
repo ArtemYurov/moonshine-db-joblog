@@ -21,11 +21,9 @@ use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 
 /**
- * End-to-end proof that a dropped overlap resolves to the canonical PROCESSED
- * status. Wires a real container, DB, events and the sync queue, then dispatches
- * a Loggable job with a busy peer: the dontRelease() middleware bare-returns
- * (handle() never runs) and JobProcessed finalizes it as PROCESSED — the claim
- * behind dropping the custom overlap statuses.
+ * End-to-end proof that overlap outcomes resolve to canonical statuses. Wires a real
+ * container, DB, events and the sync queue, then runs a Loggable job while another live
+ * execution holds the same tags: drop settles as PROCESSED, release goes back to QUEUED.
  */
 class JobLogWithoutOverlappingIntegrationTest extends TestCase
 {
@@ -101,6 +99,7 @@ class JobLogWithoutOverlappingIntegrationTest extends TestCase
         $register->invoke($provider);
 
         DropOnOverlapJob::$handled = false;
+        ReleaseOnOverlapJob::$handled = false;
     }
 
     protected function tearDown(): void
@@ -121,7 +120,7 @@ class JobLogWithoutOverlappingIntegrationTest extends TestCase
     #[PreserveGlobalState(false)]
     public function test_dropped_overlap_is_finalized_as_processed(): void
     {
-        // Peer with the same tag, queued earlier → wins the tie-break, blocks the run.
+        // Live overlap, queued earlier → wins the tie-break. Its pid is this process.
         JobLog::create([
             'connection' => 'sync',
             'queue' => 'default',
@@ -130,6 +129,7 @@ class JobLogWithoutOverlappingIntegrationTest extends TestCase
             'status' => JobLogStatus::PROCESSING,
             'queued_at' => Carbon::now()->subMinute(),
             'started_at' => Carbon::now()->subMinute(),
+            'pid' => getmypid(),
             'tags' => collect(['payments:1']),
         ]);
 
@@ -140,7 +140,7 @@ class JobLogWithoutOverlappingIntegrationTest extends TestCase
 
         $this->assertFalse(
             DropOnOverlapJob::$handled,
-            'handle() must not run while a peer holds the tag'
+            'handle() must not run while a live overlap holds the tag'
         );
         $this->assertSame(
             JobLogStatus::PROCESSED,
@@ -149,6 +149,34 @@ class JobLogWithoutOverlappingIntegrationTest extends TestCase
         );
         $this->assertSame(100, $self->progress, 'PROCESSED sets progress to 100');
         $this->assertNotNull($self->finished_at, 'PROCESSED sets finished_at');
+    }
+
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
+    public function test_released_overlap_goes_back_to_queued_without_a_pid(): void
+    {
+        // Yielding is not completion: PROCESSED would claim work that has not happened
+        // and leave a pid behind that blocks every further attempt.
+        JobLog::create([
+            'connection' => 'sync',
+            'queue' => 'default',
+            'job_uuid' => 'peer-uuid',
+            'job_class' => 'PeerJob',
+            'status' => JobLogStatus::PROCESSING,
+            'queued_at' => Carbon::now()->subMinute(),
+            'started_at' => Carbon::now()->subMinute(),
+            'pid' => getmypid(),
+            'tags' => collect(['payments:1']),
+        ]);
+
+        $this->container->make('queue')->connection('sync')->push(new ReleaseOnOverlapJob(), '', 'default');
+
+        $self = JobLog::where('job_class', ReleaseOnOverlapJob::class)->firstOrFail();
+
+        $this->assertFalse(ReleaseOnOverlapJob::$handled, 'handle() must not run while a live overlap holds the tag');
+        $this->assertSame(JobLogStatus::QUEUED, $self->status, 'a released job belongs back in the queue');
+        $this->assertNull($self->pid, 'no attempt is running, so no pid may remain');
+        $this->assertNull($self->finished_at, 'nothing finished');
     }
 
     private function runMigrations(): void
@@ -164,6 +192,34 @@ class JobLogWithoutOverlappingIntegrationTest extends TestCase
         ] as $file) {
             (require $dir . '/' . $file)->up();
         }
+    }
+}
+
+/** Loggable job whose overlap middleware serializes (releases) instead of dropping. */
+class ReleaseOnOverlapJob
+{
+    use InteractsWithQueue;
+    use Loggable;
+
+    public static bool $handled = false;
+
+    public array $middleware = [];
+
+    public function __construct()
+    {
+        $this->initializeLoggable();
+        array_unshift($this->middleware, new JobLogWithoutOverlapping(10));
+    }
+
+    /** @return array<string> */
+    public function tags(): array
+    {
+        return ['payments:1'];
+    }
+
+    public function handle(): void
+    {
+        self::$handled = true;
     }
 }
 

@@ -151,11 +151,10 @@ trait JobLoggerMethods
         $now = Carbon::now();
 
         match ($status) {
-            JobLogStatus::QUEUED => $updateData['queued_at'] = $now,
-            JobLogStatus::PROCESSING => [
-                $updateData['started_at'] = $now,
-                $updateData['pid'] = getmypid(),
-            ],
+            // Back in the queue: the attempt is over, so its pid must go — a stale one
+            // would look like a concurrent execution and block every further attempt.
+            JobLogStatus::QUEUED => $updateData += ['queued_at' => $now, 'pid' => null],
+            JobLogStatus::PROCESSING => $updateData += $this->processingUpdateData($now),
             JobLogStatus::PROCESSED, JobLogStatus::FAILED, JobLogStatus::INTERRUPTED => [
                 $updateData['finished_at'] = $now,
                 $updateData['runtime_seconds'] = $this->calculateRuntimeSeconds($now),
@@ -169,6 +168,34 @@ trait JobLoggerMethods
 
         $this->getModel()->update($updateData);
         return $this;
+    }
+
+    /**
+     * Fields written when a job enters PROCESSING.
+     *
+     * A live `pid` is kept, not overwritten: one message can be executed twice (the
+     * driver re-issues a running job once `retry_after` expires) and both write to the
+     * same row, so our own pid would erase the only trace of the first execution.
+     * Steps have no `pid` column.
+     */
+    protected function processingUpdateData(Carbon $now): array
+    {
+        if ($this->isStepModel()) {
+            return ['started_at' => $now];
+        }
+
+        $model = $this->getModel();
+
+        if ($model->pid !== null && $model->pid !== getmypid() && $model->pidIsAlive()) {
+            $this->psrLogger->debug('JobLog: keeping the live pid of a concurrent execution', [
+                'pid' => $model->pid,
+                'own_pid' => getmypid(),
+            ]);
+
+            return [];
+        }
+
+        return ['started_at' => $now, 'pid' => getmypid()];
     }
 
     protected function isStepModel(): bool

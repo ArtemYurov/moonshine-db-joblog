@@ -251,12 +251,26 @@ In the database and MoonShine UI, sensitive arguments will be stored as `*******
 
 ### Preventing overlapping runs (serialize by tags)
 
-`ArtemYurov\JobLog\Middleware\JobLogWithoutOverlapping` serializes Loggable jobs by their JobLog
-tags: when a worker picks up a job whose tags are already `PROCESSING` on a peer, the run waits or
-is dropped — both settling to Laravel's canonical `PROCESSED`/`FAILED` (no custom status), backed by
-the JobLog table (no cache lock). The package doesn't attach it — an orchestrator
+`ArtemYurov\JobLog\Middleware\JobLogWithoutOverlapping` serializes jobs by their JobLog tags.
+Busy means a **live process**, not a held timer: a peer blocks a run only while its recorded `pid`
+exists. Tags come from `TagResolver` (an explicit `tags()` method, otherwise the Eloquent models on
+the job's properties). The package doesn't attach it — an orchestrator
 ([`moonshine-command-schedule-job`](https://github.com/ArtemYurov/moonshine-command-schedule-job))
-opts a job in at dispatch time; tags come from the job's own JobLog entry.
+opts a job in at dispatch time, or the job declares it in its own `middleware()`.
+
+Two overlaps are covered:
+
+- **One message, two executions** — a driver re-issues a still-running job once its `retry_after`
+  expires. Both write to the same `job_logs` row (one row per uuid), which is why the `PROCESSING`
+  transition keeps the first live `pid`; the second execution sees it and yields.
+- **Two messages, one resource** — different uuids, same tags. The run yields to a live peer that
+  wins the `(queued_at, uuid)` tie-break.
+
+No lock and no atomicity are needed: every execution writes its own `PROCESSING` row *before* it
+queries for peers, so the two cannot miss each other.
+
+Requires **ext-posix**, and pids are meaningful on **one host** only. Without the extension every
+recorded pid counts as live.
 
 #### Serialize vs drop
 
@@ -269,19 +283,31 @@ new JobLogWithoutOverlapping(30);                   // serialize: wait 30s and r
 (new JobLogWithoutOverlapping())->dontRelease();    // drop the redundant run
 ```
 
-- **serialize** (`releaseAfter` set): released back to the queue and retried until the tags free
-  up → `PROCESSED` (eventually ran) or `FAILED` (`tries`/`retryUntil` ran out).
-- **drop** (`dontRelease()`, `releaseAfter = null`): returns without executing — the peer is
-  already doing the work, so this run is redundant → `PROCESSED` via Laravel's success lifecycle.
-  On the sync queue `release()` is a no-op, so a serialized run also just settles to `PROCESSED`.
+Both settle to Laravel's canonical statuses (no custom status): a released run is retried until the
+peer is gone → `PROCESSED` or `FAILED`; a dropped run returns without executing → `PROCESSED`.
 
 > **Important:** `release()` increments `attempts()`, so a serialized job **must** tolerate retries
 > (`$tries > 1` or `retryUntil()`) — otherwise the first release exhausts its single attempt and it
-> fails with `MaxAttemptsExceeded`. That is what bounds a serialized job to `FAILED` instead of
-> releasing forever.
+> fails with `MaxAttemptsExceeded`.
 
-The check is a `SELECT` with a `queued_at`+`uuid` tie-break; a fully-concurrent race is a known
-(rare) TOCTOU window.
+`expireAfter()` (default 3 hours) is **not** a lock TTL: it caps how long a `PROCESSING` row may
+keep blocking, so a lost bookkeeping write cannot wedge a tag forever. It is raised to the job's own
+`timeout + 60s` when that would outlast it — with a warning on the job — so it never writes off a
+run that is still legitimately going.
+
+#### Upgrading to 1.3
+
+`new JobLogWithoutOverlapping(30)`, `releaseAfter()` and `dontRelease()` are unchanged. What differs:
+
+- **Two executions of the same message are now caught** — previously they shared one row and
+  excluded each other as "self", so a re-issued job ran twice.
+- **A crashed job no longer blocks its tags** until someone edits the row: its pid is gone, so the
+  next attempt proceeds. Without ext-posix it blocks until `expireAfter()` passes.
+- **A released job now goes back to `QUEUED` with no `pid`** instead of `PROCESSED` with
+  `finished_at`. `JobReleasedAfterException` is handled too — it previously left the row stuck in
+  `PROCESSING`.
+- **`expireAfter()` changed meaning** (lock TTL → staleness cap) and its default rose to 3 hours.
+- `hasActiveOverlap()` is gone; test doubles should stub `findActiveOverlapByTags()` instead.
 
 ## Extending the resource
 
