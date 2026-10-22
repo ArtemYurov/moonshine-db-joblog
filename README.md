@@ -141,6 +141,8 @@ use ArtemYurov\JobLog\MoonShine\Resources\JobLogResource;
 MenuItem::make('Job Logs', JobLogResource::class),
 ```
 
+Job log resources are available to super users only: the MoonShine user must return `true` from `isSuperUser()`. The default `MoonshineUser` model has this method; a custom user model should implement it.
+
 ## Usage
 
 ### Logging methods (PSR-3)

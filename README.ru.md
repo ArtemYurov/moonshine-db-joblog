@@ -141,6 +141,8 @@ use ArtemYurov\JobLog\MoonShine\Resources\JobLogResource;
 MenuItem::make('Логи задач', JobLogResource::class),
 ```
 
+Ресурсы журнала доступны только суперпользователям: пользователь MoonShine должен возвращать `true` из `isSuperUser()`. У стандартной модели `MoonshineUser` этот метод есть, своя модель пользователей должна его реализовать.
+
 ## Использование
 
 ### Методы логирования (PSR-3)

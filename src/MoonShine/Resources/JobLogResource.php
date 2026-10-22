@@ -8,6 +8,7 @@ use MoonShine\Support\Enums\Action;
 use ArtemYurov\JobLog\Enums\JobLogStatus;
 use ArtemYurov\JobLog\Models\JobLog;
 use ArtemYurov\JobLog\MoonShine\Traits\JobLogErrorFormatter;
+use ArtemYurov\JobLog\MoonShine\Traits\SuperUserAccess;
 use MoonShine\Contracts\UI\FieldContract;
 use MoonShine\Laravel\Fields\Relationships\HasMany;
 use MoonShine\Laravel\Pages\Crud\DetailPage;
@@ -28,6 +29,7 @@ use MoonShine\UI\Fields\Textarea;
  */
 class JobLogResource extends ModelResource
 {
+    use SuperUserAccess;
     use JobLogErrorFormatter;
 
     protected string $model = JobLog::class;

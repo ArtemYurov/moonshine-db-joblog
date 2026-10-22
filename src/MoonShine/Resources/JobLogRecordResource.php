@@ -7,6 +7,7 @@ namespace ArtemYurov\JobLog\MoonShine\Resources;
 use MoonShine\Support\Enums\Action;
 use ArtemYurov\JobLog\Models\JobLogRecord;
 use ArtemYurov\JobLog\MoonShine\Traits\JobLogErrorFormatter;
+use ArtemYurov\JobLog\MoonShine\Traits\SuperUserAccess;
 use MoonShine\Laravel\Resources\ModelResource;
 use MoonShine\UI\Fields\ID;
 use MoonShine\UI\Fields\Text;
@@ -20,6 +21,7 @@ use MoonShine\Support\ListOf;
  */
 class JobLogRecordResource extends ModelResource
 {
+    use SuperUserAccess;
     use JobLogErrorFormatter;
 
     protected string $model = JobLogRecord::class;

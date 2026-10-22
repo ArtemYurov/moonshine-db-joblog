@@ -8,6 +8,7 @@ use MoonShine\Support\Enums\Action;
 use ArtemYurov\JobLog\Enums\JobLogStatus;
 use ArtemYurov\JobLog\Models\JobLogStep;
 use ArtemYurov\JobLog\MoonShine\Traits\JobLogErrorFormatter;
+use ArtemYurov\JobLog\MoonShine\Traits\SuperUserAccess;
 use MoonShine\Contracts\UI\FieldContract;
 use MoonShine\Laravel\Fields\Relationships\HasMany;
 use MoonShine\Laravel\Resources\ModelResource;
@@ -25,6 +26,7 @@ use MoonShine\UI\Fields\Textarea;
  */
 class JobLogStepResource extends ModelResource
 {
+    use SuperUserAccess;
     use JobLogErrorFormatter;
 
     protected string $model = JobLogStep::class;
