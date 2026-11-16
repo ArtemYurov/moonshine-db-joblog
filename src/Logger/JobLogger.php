@@ -49,7 +49,8 @@ class JobLogger
 
         [$jobArgs, $relatedModel] = self::extractJobArgsAndRelated($jobObject);
 
-        $queueName = Str::replaceFirst('queues:', '', $queue);
+        // the sync connection dispatches without a queue name
+        $queueName = $queue !== null ? Str::replaceFirst('queues:', '', $queue) : null;
 
         /** @var TagResolver $tagResolver */
         $tagResolver = app(TagResolver::class);
