@@ -2,7 +2,7 @@
 
 namespace ArtemYurov\JobLog\Models\Mongo;
 
-use ArtemYurov\JobLog\Database\JobLogDatabase;
+use ArtemYurov\JobLog\Database\JobLogStorage;
 use ArtemYurov\JobLog\Models\Contracts\JobLogRecordContract;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use MongoDB\Laravel\Eloquent\Model;
@@ -31,7 +31,7 @@ class JobLogRecord extends Model implements JobLogRecordContract
      */
     public function getConnectionName()
     {
-        return JobLogDatabase::connectionName() ?? $this->connection;
+        return JobLogStorage::connectionName() ?? $this->connection;
     }
 
     public function jobLog(): BelongsTo

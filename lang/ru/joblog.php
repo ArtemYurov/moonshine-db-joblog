@@ -85,16 +85,10 @@ return [
 
     // Команды
     'command' => [
-        'install_description' => 'Установка пакета JobLog (публикация конфигурации и запуск миграций)',
-        'install_unsupported' => 'JobLog: драйвер ":driver" не поддерживается (поддерживаются PostgreSQL и MongoDB).',
-        'install_switch_confirm' => 'Настроить хранение логов JobLog на MongoDB? База данных приложения не меняется, существующие данные не переносятся.',
-        'install_switched' => 'Хранилище JobLog переключено на MongoDB (JOBLOG_DB_DRIVER/JOBLOG_DB_CONNECTION в .env).',
-        'install_mongo_package_missing' => 'JobLog: пакет mongodb/laravel-mongodb не установлен. Выполните: composer require mongodb/laravel-mongodb',
-        'install_mongo_connection_missing' => 'JobLog: в config/database.php нет соединения "mongodb". Добавьте его (драйвер "mongodb", dsn, database) и повторите joblog:install.',
-        'install_migrate_confirm' => 'Запустить миграции JobLog сейчас?',
-        'install_migrate_skipped' => 'Пропущено. Выполните "php artisan migrate", когда будете готовы.',
-        'install_env_missing' => '.env не найден — задайте :key=:value вручную.',
-        'install_env_exists' => ':key уже задан в .env — обновите вручную на :key=:value.',
+        'install_storage' => 'Хранилище JobLog: драйвер ":driver", соединение ":connection"',
+        'install_not_mongo' => 'JobLog: соединение ":connection" не использует драйвер "mongodb".',
+        'install_env_missing' => '.env не найден — добавьте в него :line вручную.',
+        'install_config_cached' => 'Конфигурация закэширована: выполните "php artisan config:cache" ещё раз, чтобы применить новое значение из .env.',
 
         'cleanup_description' => 'Очистка записей JobLog старше указанного количества дней',
         'cleanup_days_option' => 'Количество дней для хранения записей',

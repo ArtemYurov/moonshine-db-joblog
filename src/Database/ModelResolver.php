@@ -22,7 +22,7 @@ final class ModelResolver
      */
     public static function jobLog(): string
     {
-        return JobLogDatabase::isMongo() ? MongoJobLog::class : JobLog::class;
+        return JobLogStorage::isMongo() ? MongoJobLog::class : JobLog::class;
     }
 
     /**
@@ -30,7 +30,7 @@ final class ModelResolver
      */
     public static function jobLogStep(): string
     {
-        return JobLogDatabase::isMongo() ? MongoJobLogStep::class : JobLogStep::class;
+        return JobLogStorage::isMongo() ? MongoJobLogStep::class : JobLogStep::class;
     }
 
     /**
@@ -38,6 +38,6 @@ final class ModelResolver
      */
     public static function jobLogRecord(): string
     {
-        return JobLogDatabase::isMongo() ? MongoJobLogRecord::class : JobLogRecord::class;
+        return JobLogStorage::isMongo() ? MongoJobLogRecord::class : JobLogRecord::class;
     }
 }

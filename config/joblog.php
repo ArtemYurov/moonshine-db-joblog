@@ -3,21 +3,16 @@
 return [
     /*
     |--------------------------------------------------------------------------
-    | Database Connection & Driver
+    | Database Connection
     |--------------------------------------------------------------------------
-    | connection — named connection from the host's config/database.php.
-    | When null, the application default connection is used (DB_CONNECTION),
-    | so nothing has to be configured on a standard PostgreSQL setup.
-    |
-    | driver — 'auto' (default) resolves the driver from the actual
-    | connection settings. Can be forced to 'pgsql' or 'mongodb' — this is
-    | how the log is switched to MongoDB while the app stays on its own
-    | database (no data is migrated). Any other driver is rejected with a
-    | link to the repository issues.
+    | Named connection from the host's config/database.php that stores the log.
+    | When null, the application default connection is used (DB_CONNECTION).
+    | The storage driver is the driver of that connection: pgsql, sqlite or
+    | mongodb (needs mongodb/laravel-mongodb). Any other driver is rejected at
+    | boot with a link to the repository issues.
     */
     'database' => [
         'connection' => env('JOBLOG_DB_CONNECTION'),
-        'driver' => env('JOBLOG_DB_DRIVER', 'auto'),
     ],
 
     /*

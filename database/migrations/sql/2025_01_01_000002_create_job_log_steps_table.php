@@ -1,18 +1,19 @@
 <?php
 
-use ArtemYurov\JobLog\Database\JobLogDatabase;
+use ArtemYurov\JobLog\Database\JobLogStorage;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    public function getConnection(): ?string
+    {
+        return JobLogStorage::connectionName();
+    }
+
     public function up(): void
     {
-        if (!JobLogDatabase::shouldRunSqlSchema()) {
-            return;
-        }
-
         Schema::create('job_log_steps', function (Blueprint $table) {
             $table->id();
 
@@ -39,10 +40,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        if (!JobLogDatabase::shouldRunSqlSchema()) {
-            return;
-        }
-
         Schema::dropIfExists('job_log_steps');
     }
 };

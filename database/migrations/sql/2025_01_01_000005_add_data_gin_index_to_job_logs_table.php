@@ -1,18 +1,19 @@
 <?php
 
-use ArtemYurov\JobLog\Database\JobLogDatabase;
+use ArtemYurov\JobLog\Database\JobLogStorage;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    public function getConnection(): ?string
+    {
+        return JobLogStorage::connectionName();
+    }
+
     public function up(): void
     {
-        if (!JobLogDatabase::shouldRunSqlSchema()) {
-            return;
-        }
-
         if (Schema::getConnection()->getDriverName() === 'pgsql') {
             DB::statement('ALTER TABLE job_logs ALTER COLUMN data TYPE jsonb USING data::jsonb');
             DB::statement('ALTER TABLE job_logs ALTER COLUMN args TYPE jsonb USING args::jsonb');
@@ -23,10 +24,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        if (!JobLogDatabase::shouldRunSqlSchema()) {
-            return;
-        }
-
         if (Schema::getConnection()->getDriverName() === 'pgsql') {
             DB::statement('DROP INDEX IF EXISTS job_logs_data_gin');
             DB::statement('DROP INDEX IF EXISTS job_logs_args_gin');

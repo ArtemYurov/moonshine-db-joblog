@@ -2,7 +2,7 @@
 
 namespace ArtemYurov\JobLog\Models;
 
-use ArtemYurov\JobLog\Database\JobLogDatabase;
+use ArtemYurov\JobLog\Database\JobLogStorage;
 use ArtemYurov\JobLog\Enums\JobLogStatus;
 use ArtemYurov\JobLog\Models\Concerns\HasJobLogBehavior;
 use ArtemYurov\JobLog\Models\Contracts\JobLogContract;
@@ -36,7 +36,7 @@ class JobLog extends Model implements JobLogContract
      */
     public function getConnectionName()
     {
-        return JobLogDatabase::connectionName() ?? $this->connection;
+        return JobLogStorage::connectionName() ?? $this->connection;
     }
 
     public function records(): HasMany

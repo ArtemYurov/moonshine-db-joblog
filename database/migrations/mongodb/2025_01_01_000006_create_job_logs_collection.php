@@ -1,6 +1,6 @@
 <?php
 
-use ArtemYurov\JobLog\Database\JobLogDatabase;
+use ArtemYurov\JobLog\Database\JobLogStorage;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\Schema;
 use MongoDB\Laravel\Schema\Blueprint;
@@ -9,11 +9,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (!JobLogDatabase::shouldRunMongoSchema()) {
-            return;
-        }
-
-        Schema::connection(JobLogDatabase::connectionName())->create('job_logs', function (Blueprint $collection) {
+        Schema::connection(JobLogStorage::connectionName())->create('job_logs', function (Blueprint $collection) {
             // The unique index is what makes JobLog::firstOrCreate/findByJobUuid reliable.
             $collection->unique('job_uuid');
 
@@ -31,10 +27,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        if (!JobLogDatabase::shouldRunMongoSchema()) {
-            return;
-        }
-
-        Schema::connection(JobLogDatabase::connectionName())->drop('job_logs');
+        Schema::connection(JobLogStorage::connectionName())->drop('job_logs');
     }
 };

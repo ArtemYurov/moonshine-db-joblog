@@ -7,7 +7,7 @@ use ArtemYurov\JobLog\Commands\JobLogInstallCommand;
 use ArtemYurov\JobLog\Commands\JobLogTruncateCommand;
 use ArtemYurov\JobLog\Tags\TagResolver;
 use ArtemYurov\JobLog\Database\Contracts\JobLogStore;
-use ArtemYurov\JobLog\Database\JobLogDatabase;
+use ArtemYurov\JobLog\Database\JobLogStorage;
 use ArtemYurov\JobLog\Database\JobLogStores;
 use ArtemYurov\JobLog\Database\Stores\EloquentJobLogStore;
 use ArtemYurov\JobLog\Database\Stores\MongoDbJobLogStore;
@@ -40,7 +40,7 @@ class JobLogServiceProvider extends ServiceProvider
 
         // Log storage: SQL (pgsql) or MongoDB, resolved from joblog.database
         $this->app->singleton(JobLogStore::class, function () {
-            return JobLogDatabase::isMongo()
+            return JobLogStorage::isMongo()
                 ? new MongoDbJobLogStore()
                 : new EloquentJobLogStore();
         });
@@ -53,7 +53,7 @@ class JobLogServiceProvider extends ServiceProvider
     {
         // Fail loudly (with the repository link) when the resolved driver
         // is not supported — before any query gets a chance to run.
-        JobLogDatabase::guardWhenConfigured();
+        JobLogStorage::guardWhenConfigured();
 
         $this->loadTranslationsFrom(__DIR__ . '/../lang', 'joblog');
 
@@ -65,11 +65,12 @@ class JobLogServiceProvider extends ServiceProvider
             __DIR__ . '/../lang' => $this->app->langPath('vendor/joblog'),
         ], 'joblog-lang');
 
-        $this->publishes([
-            __DIR__ . '/../database/migrations/' => database_path('migrations'),
-        ], 'joblog-migrations');
+        // Only the folder of the storage in use: the other storage's migrations would stay pending forever.
+        $migrations = __DIR__ . '/../database/migrations/' . (JobLogStorage::isMongo() ? 'mongodb' : 'sql');
 
-        $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
+        $this->publishes([$migrations => database_path('migrations')], 'joblog-migrations');
+
+        $this->loadMigrationsFrom($migrations);
 
         if ($this->app->runningInConsole()) {
             $this->commands([

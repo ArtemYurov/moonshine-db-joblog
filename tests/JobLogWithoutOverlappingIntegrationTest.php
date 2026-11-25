@@ -181,7 +181,7 @@ class JobLogWithoutOverlappingIntegrationTest extends TestCase
 
     private function runMigrations(): void
     {
-        $dir = __DIR__ . '/../database/migrations';
+        $dir = __DIR__ . '/../database/migrations/sql';
 
         // Core tables only; the Postgres-only GIN index migration (…000005…) is skipped.
         foreach ([

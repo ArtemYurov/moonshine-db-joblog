@@ -22,7 +22,7 @@ final class JobLogStores
             return app(JobLogStore::class);
         }
 
-        return JobLogDatabase::isMongo()
+        return JobLogStorage::isMongo()
             ? new MongoDbJobLogStore()
             : new EloquentJobLogStore();
     }

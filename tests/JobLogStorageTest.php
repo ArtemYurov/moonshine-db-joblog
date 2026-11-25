@@ -2,10 +2,8 @@
 
 namespace ArtemYurov\JobLog\Tests;
 
-use ArtemYurov\JobLog\Database\Exceptions\DriverConnectionMismatchException;
-use ArtemYurov\JobLog\Database\Exceptions\MissingMongoDbPackageException;
-use ArtemYurov\JobLog\Database\Exceptions\UnsupportedDatabaseDriverException;
-use ArtemYurov\JobLog\Database\JobLogDatabase;
+use ArtemYurov\JobLog\Database\Exceptions\DatabaseConfigurationException;
+use ArtemYurov\JobLog\Database\JobLogStorage;
 use ArtemYurov\JobLog\Database\JobLogStores;
 use ArtemYurov\JobLog\Database\ModelResolver;
 use ArtemYurov\JobLog\Database\Stores\EloquentJobLogStore;
@@ -19,13 +17,12 @@ use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 
 /**
- * The agreed driver resolution flow:
+ * Storage resolution:
  *  - joblog.database.connection null → database.default (DB_CONNECTION);
- *  - joblog.database.driver 'auto' → the connection's actual driver;
- *  - an explicit driver must match the connection;
- *  - drivers outside {pgsql, mongodb} are rejected with the repository link.
+ *  - the driver is always the connection's own;
+ *  - drivers outside SUPPORTED_DRIVERS are rejected with the repository link.
  */
-class JobLogDatabaseTest extends TestCase
+class JobLogStorageTest extends TestCase
 {
     private Container $container;
 
@@ -73,7 +70,7 @@ class JobLogDatabaseTest extends TestCase
     {
         $this->withConfig($this->postgres());
 
-        $this->assertSame('pgsql', JobLogDatabase::connectionName());
+        $this->assertSame('pgsql', JobLogStorage::connectionName());
     }
 
     #[RunInSeparateProcess]
@@ -85,7 +82,7 @@ class JobLogDatabaseTest extends TestCase
 
         $this->withConfig($config);
 
-        $this->assertSame('mongodb', JobLogDatabase::connectionName());
+        $this->assertSame('mongodb', JobLogStorage::connectionName());
     }
 
     #[RunInSeparateProcess]
@@ -94,22 +91,8 @@ class JobLogDatabaseTest extends TestCase
     {
         $this->withConfig($this->postgres());
 
-        $this->assertSame('pgsql', JobLogDatabase::effectiveDriver());
-        $this->assertTrue(JobLogDatabase::isSql());
-        $this->assertFalse(JobLogDatabase::isMongo());
-    }
-
-    #[RunInSeparateProcess]
-    #[PreserveGlobalState(false)]
-    public function test_explicit_driver_overrides_auto(): void
-    {
-        $config = $this->postgres();
-        $config['joblog']['database']['driver'] = 'mongodb';
-
-        $this->withConfig($config);
-
-        $this->assertSame('mongodb', JobLogDatabase::effectiveDriver());
-        $this->assertTrue(JobLogDatabase::isMongo());
+        $this->assertSame('pgsql', JobLogStorage::driver());
+        $this->assertFalse(JobLogStorage::isMongo());
     }
 
     #[RunInSeparateProcess]
@@ -118,10 +101,9 @@ class JobLogDatabaseTest extends TestCase
     {
         $this->withConfig($this->postgres());
 
-        JobLogDatabase::assertSupported();
+        JobLogStorage::assertSupported();
 
-        $this->assertTrue(JobLogDatabase::shouldRunSqlSchema());
-        $this->assertFalse(JobLogDatabase::shouldRunMongoSchema());
+        $this->assertFalse(JobLogStorage::isMongo());
     }
 
     #[RunInSeparateProcess]
@@ -134,33 +116,19 @@ class JobLogDatabaseTest extends TestCase
         $this->withConfig($config);
 
         try {
-            JobLogDatabase::assertSupported();
+            JobLogStorage::assertSupported();
             $this->fail('mysql must be rejected');
-        } catch (UnsupportedDatabaseDriverException $e) {
+        } catch (DatabaseConfigurationException $e) {
             $this->assertStringContainsString('mysql', $e->getMessage());
-            $this->assertStringContainsString(JobLogDatabase::REPOSITORY_ISSUES_URL, $e->getMessage());
+            $this->assertStringContainsString(JobLogStorage::REPOSITORY_ISSUES_URL, $e->getMessage());
         }
-    }
-
-    #[RunInSeparateProcess]
-    #[PreserveGlobalState(false)]
-    public function test_mismatched_explicit_driver_is_rejected(): void
-    {
-        $config = $this->postgres();
-        $config['joblog']['database']['driver'] = 'mongodb'; // connection is actually pgsql
-
-        $this->withConfig($config);
-
-        $this->expectException(DriverConnectionMismatchException::class);
-
-        JobLogDatabase::assertSupported();
     }
 
     #[RunInSeparateProcess]
     #[PreserveGlobalState(false)]
     public function test_mongodb_without_package_is_rejected(): void
     {
-        if (JobLogDatabase::mongodbPackageInstalled()) {
+        if (JobLogStorage::hasMongoPackage()) {
             $this->markTestSkipped('mongodb/laravel-mongodb is installed in this environment');
         }
 
@@ -169,9 +137,10 @@ class JobLogDatabaseTest extends TestCase
 
         $this->withConfig($config);
 
-        $this->expectException(MissingMongoDbPackageException::class);
+        $this->expectException(DatabaseConfigurationException::class);
+        $this->expectExceptionMessage('composer require mongodb/laravel-mongodb');
 
-        JobLogDatabase::assertSupported();
+        JobLogStorage::assertSupported();
     }
 
     #[RunInSeparateProcess]
@@ -183,9 +152,10 @@ class JobLogDatabaseTest extends TestCase
 
         $this->withConfig($config);
 
-        $this->expectException(UnsupportedDatabaseDriverException::class);
+        $this->expectException(DatabaseConfigurationException::class);
+        $this->expectExceptionMessage('connection "missing" is not defined');
 
-        JobLogDatabase::assertSupported();
+        JobLogStorage::assertSupported();
     }
 
     #[RunInSeparateProcess]
@@ -195,11 +165,9 @@ class JobLogDatabaseTest extends TestCase
         // Unit harness: no database.default, no explicit connection.
         $this->withConfig(['joblog' => []]);
 
-        JobLogDatabase::guardWhenConfigured();
+        JobLogStorage::guardWhenConfigured();
 
-        // SQL migrations proceed on the application default in that context.
-        $this->assertTrue(JobLogDatabase::shouldRunSqlSchema());
-        $this->assertFalse(JobLogDatabase::shouldRunMongoSchema());
+        $this->assertFalse(JobLogStorage::isMongo());
     }
 
     #[RunInSeparateProcess]
