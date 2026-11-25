@@ -35,8 +35,10 @@ class JobLogStepResource extends ModelResource
 
     public function __construct(CoreContract $core)
     {
-        // SQL or MongoDB model, per the resolved joblog.database driver.
-        $this->model = JobLogModelResolver::step();
+        // Only the default model is swapped: a subclass may set its own.
+        if ($this->model === JobLogStep::class) {
+            $this->model = JobLogModelResolver::step();
+        }
 
         parent::__construct($core);
     }

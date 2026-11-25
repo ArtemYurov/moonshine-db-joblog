@@ -167,42 +167,21 @@ class JobLogIndexPage extends IndexPage
 
     private function getJobClassOptions(): array
     {
-        $model = JobLogModelResolver::log();
-
-        // No SQL distinct(): the MongoDB query builder turns distinct() into the
-        // flat "distinct" command, which breaks the subsequent pluck() —
-        // deduplication is done in PHP instead, so both drivers behave the same.
-        return $model::query()
-            ->whereNotNull('job_class')
-            ->pluck('job_class')
-            ->unique()
-            ->values()
+        return collect(JobLogModelResolver::log()::distinctValues('job_class'))
             ->mapWithKeys(fn($class) => [$class => class_basename($class)])
             ->toArray();
     }
 
     private function getQueueOptions(): array
     {
-        $model = JobLogModelResolver::log();
-
-        return $model::query()
-            ->whereNotNull('queue')
-            ->pluck('queue')
-            ->unique()
-            ->values()
+        return collect(JobLogModelResolver::log()::distinctValues('queue'))
             ->mapWithKeys(fn($queue) => [$queue => $queue])
             ->toArray();
     }
 
     private function getRelatedModelOptions(): array
     {
-        $model = JobLogModelResolver::log();
-
-        return $model::query()
-            ->whereNotNull('related_type')
-            ->pluck('related_type')
-            ->unique()
-            ->values()
+        return collect(JobLogModelResolver::log()::distinctValues('related_type'))
             ->mapWithKeys(function ($className) {
                 $baseName = class_basename($className);
                 return [$className => $baseName];

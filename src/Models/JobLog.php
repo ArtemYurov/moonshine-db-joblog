@@ -84,4 +84,10 @@ class JobLog extends Model implements JobLogContract
     {
         return static::where('queued_at', '<', $cutoff)->delete();
     }
+
+    /** Distinct non-null values of a column. */
+    public static function distinctValues(string $column): array
+    {
+        return static::whereNotNull($column)->distinct()->pluck($column)->all();
+    }
 }

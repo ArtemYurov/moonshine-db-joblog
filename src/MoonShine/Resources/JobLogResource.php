@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ArtemYurov\JobLog\MoonShine\Resources;
 
 use MoonShine\Support\Enums\Action;
+use ArtemYurov\JobLog\Database\JobLogStorage;
 use ArtemYurov\JobLog\Database\JobLogModelResolver;
 use MoonShine\Contracts\Core\DependencyInjection\CoreContract;
 use ArtemYurov\JobLog\Enums\JobLogStatus;
@@ -39,8 +40,18 @@ class JobLogResource extends ModelResource
 
     public function __construct(CoreContract $core)
     {
-        // SQL or MongoDB model, per the resolved joblog.database driver.
-        $this->model = JobLogModelResolver::log();
+        // Only the default model is swapped: a subclass may set its own.
+        if ($this->model === JobLog::class) {
+            $this->model = JobLogModelResolver::log();
+        }
+
+        // On MongoDB an eager hasOne loads every step and error record of the page rows,
+        // so the package default is dropped; a subclass that declares its own $with keeps it.
+        $ownWith = (new \ReflectionProperty($this, 'with'))->getDeclaringClass()->getName() !== self::class;
+
+        if (JobLogStorage::isMongo() && !$ownWith) {
+            $this->with = [];
+        }
 
         parent::__construct($core);
     }

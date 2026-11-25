@@ -113,4 +113,11 @@ class JobLog extends Model implements JobLogContract
             $deleted += $batch;
         }
     }
+
+    /** Distinct non-null values of a field. */
+    public static function distinctValues(string $column): array
+    {
+        // toBase(): the distinct command returns bare values, not documents to hydrate.
+        return static::query()->toBase()->whereNotNull($column)->distinct($column)->get()->all();
+    }
 }

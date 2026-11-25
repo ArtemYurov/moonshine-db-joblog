@@ -30,8 +30,10 @@ class JobLogRecordResource extends ModelResource
 
     public function __construct(CoreContract $core)
     {
-        // SQL or MongoDB model, per the resolved joblog.database driver.
-        $this->model = JobLogModelResolver::record();
+        // Only the default model is swapped: a subclass may set its own.
+        if ($this->model === JobLogRecord::class) {
+            $this->model = JobLogModelResolver::record();
+        }
 
         parent::__construct($core);
     }
