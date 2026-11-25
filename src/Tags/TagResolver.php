@@ -19,7 +19,8 @@ class TagResolver
     {
         // 1. Explicit tags() method on the job
         if (method_exists($job, 'tags')) {
-            return $job->tags();
+            // A list: a filtered array with gaps would be stored as a JSON object / BSON document.
+            return array_values($job->tags());
         }
 
         // 2. Auto-detect Eloquent models from job properties

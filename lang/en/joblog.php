@@ -86,6 +86,7 @@ return [
     // Команды
     'command' => [
         'install_storage' => 'JobLog storage: driver ":driver", connection ":connection"',
+        'install_connection_without_mongo' => 'JobLog: --connection is used only with --mongo.',
         'install_not_mongo' => 'JobLog: connection ":connection" does not use the "mongodb" driver.',
         'install_env_missing' => '.env not found — add :line to it manually.',
         'install_config_cached' => 'The configuration is cached: run "php artisan config:cache" again to apply the new .env value.',

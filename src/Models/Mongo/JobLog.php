@@ -82,7 +82,8 @@ class JobLog extends Model implements JobLogContract
     /** Documents carrying every given tag. */
     public function scopeWithAllTags(Builder $query, array $tags): void
     {
-        $query->where('tags', 'all', $tags);
+        // $all takes a list only: an array with gaps is sent as a document.
+        $query->where('tags', 'all', array_values($tags));
     }
 
     /**

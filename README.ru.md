@@ -119,6 +119,12 @@ php artisan vendor:publish --tag=joblog-lang
 
    Вручную — то же самое: `JOBLOG_DB_CONNECTION=mongodb` в `.env`, затем `php artisan migrate`.
 
+   Переключайте, когда очереди `Loggable`-задач пусты, включая отложенные задачи, и сразу
+   перезапустите воркеры (`php artisan queue:restart` или `horizon:terminate`): задача из очереди
+   ищет свою запись лога в новом хранилище, а воркер со старой конфигурацией пишет в старое.
+   `migrate --pretend` для MongoDB не поддерживается: laravel-mongodb создаёт коллекции и индексы
+   и в этом режиме.
+
 На MongoDB список MoonShine догружает `latestStep` и `latestErrorRecord` по строке, одним запросом
 на строку: жадная загрузка `hasOne` там читает все шаги и ошибки логов страницы. Если включён
 `Model::preventLazyLoading()`, объявите `$with` в наследнике `JobLogResource` — объявленный в наследнике
@@ -473,6 +479,8 @@ php artisan joblog:truncate
   JobLogModelResolver::log()::query()->withAllTags(['payments:1'])->exists();
   JobLogModelResolver::log()::getLatestCompletedFinishedTime(SyncOrdersJob::class);
   ```
+- **`related_id` передавайте в типе ключа модели** в `getLatestCompletedFinishedTime()` и
+  `getLatestCompletedStartedTime()`: MongoDB сравнивает с учётом типа, `'5'` не совпадёт с сохранённым `5`.
 
 ## Лицензия
 

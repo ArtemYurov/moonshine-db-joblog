@@ -119,6 +119,12 @@ copied.
 
    By hand it is the same: `JOBLOG_DB_CONNECTION=mongodb` in `.env`, then `php artisan migrate`.
 
+   Switch while the queues of `Loggable` jobs are empty, delayed jobs included, and restart the
+   workers right after (`php artisan queue:restart` or `horizon:terminate`): a queued job looks up
+   its log record in the new storage, and a worker that still runs the old configuration writes to
+   the old one. `migrate --pretend` is not supported for MongoDB: laravel-mongodb creates the
+   collections and indexes even then.
+
 On MongoDB the MoonShine list loads `latestStep` and `latestErrorRecord` lazily, one query per row:
 eager loading a `hasOne` there reads every step and error record of the page. With
 `Model::preventLazyLoading()` enabled, declare `$with` in your `JobLogResource` subclass — a `$with`
@@ -472,6 +478,8 @@ php artisan joblog:truncate
   JobLogModelResolver::log()::query()->withAllTags(['payments:1'])->exists();
   JobLogModelResolver::log()::getLatestCompletedFinishedTime(SyncOrdersJob::class);
   ```
+- **Pass `related_id` in the type of the model key** to `getLatestCompletedFinishedTime()` and
+  `getLatestCompletedStartedTime()`: MongoDB compares types, so `'5'` does not match a stored `5`.
 
 ## License
 

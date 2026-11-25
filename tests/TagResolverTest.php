@@ -36,6 +36,18 @@ class TagResolverTest extends TestCase
         $this->assertSame(['custom:tag', 'another:tag'], $result);
     }
 
+    public function test_resolve_reindexes_explicit_tags(): void
+    {
+        $job = new class {
+            public function tags(): array
+            {
+                return array_filter(['a', null, 'c']);
+            }
+        };
+
+        $this->assertSame(['a', 'c'], $this->resolver->resolve($job));
+    }
+
     public function test_resolve_extracts_model_tag(): void
     {
         $model = $this->createMock(Model::class);

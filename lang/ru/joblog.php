@@ -86,6 +86,7 @@ return [
     // Команды
     'command' => [
         'install_storage' => 'Хранилище JobLog: драйвер ":driver", соединение ":connection"',
+        'install_connection_without_mongo' => 'JobLog: --connection работает только вместе с --mongo.',
         'install_not_mongo' => 'JobLog: соединение ":connection" не использует драйвер "mongodb".',
         'install_env_missing' => '.env не найден — добавьте в него :line вручную.',
         'install_config_cached' => 'Конфигурация закэширована: выполните "php artisan config:cache" ещё раз, чтобы применить новое значение из .env.',

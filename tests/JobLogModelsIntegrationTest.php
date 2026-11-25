@@ -51,6 +51,7 @@ class JobLogModelsIntegrationTest extends TestCase
             '2025_01_01_000002_create_job_log_steps_table.php',
             '2025_01_01_000003_create_job_log_records_table.php',
             '2025_01_01_000004_add_custom_status_to_job_logs_table.php',
+            '2025_01_01_000009_add_step_index_to_job_log_records_table.php',
         ] as $file) {
             (require __DIR__ . '/../database/migrations/sql/' . $file)->up();
         }

@@ -16,6 +16,12 @@ class JobLogInstallCommand extends Command
 
     public function handle(): int
     {
+        if (!$this->option('mongo') && $this->input->hasParameterOption('--connection')) {
+            $this->components->error(__('joblog::joblog.command.install_connection_without_mongo'));
+
+            return self::FAILURE;
+        }
+
         $connection = $this->option('mongo') ? (string) $this->option('connection') : null;
 
         if ($connection !== null) {
