@@ -14,6 +14,7 @@
 ## Возможности
 
 - Автоматическое отслеживание жизненного цикла job (queued → processing → processed/failed)
+- Два поддерживаемых хранилища: PostgreSQL (без настройки) и MongoDB (опциональное переключение, без переноса данных)
 - Пошаговый прогресс с именованными шагами
 - PSR-3 совместимое логирование (emergency, alert, critical, error, warning, notice, info, debug)
 - Полиморфная связь `related` — привязка любой Eloquent-модели к задаче
@@ -43,6 +44,12 @@ composer require artemyurov/moonshine-db-joblog
 php artisan migrate
 ```
 
+Или используйте мастер установки (публикует конфиг, проверяет драйвер БД и предлагает переключение на MongoDB, если драйвер по умолчанию не поддерживается):
+
+```bash
+php artisan joblog:install
+```
+
 Опционально опубликуйте конфиг:
 
 ```bash
@@ -58,6 +65,55 @@ php artisan vendor:publish --tag=joblog-lang
 ```
 
 Файлы будут размещены в `lang/vendor/joblog/`. Пространство имён переводов: `joblog::joblog`.
+
+## Хранилище (PostgreSQL / MongoDB)
+
+**PostgreSQL — хранилище по умолчанию и не требует настройки.** Пока ничего
+не переопределено, пакет использует соединение приложения по умолчанию — то,
+на которое указывает `DB_CONNECTION`.
+
+### Flow выбора драйвера
+
+1. `joblog.database.connection` не задан → используется соединение приложения по умолчанию;
+2. `joblog.database.driver` = `auto` (по умолчанию) → драйвер берётся из фактических настроек соединения;
+3. явно заданный `driver` обязан совпадать с фактическим драйвером соединения;
+4. всё, кроме `pgsql` / `mongodb`, отвергается ошибкой со ссылкой на issues
+   репозитория — с просьбой написать автору о необходимости поддержки:
+   [issues](https://github.com/ArtemYurov/moonshine-db-joblog/issues)
+
+### Переключение лога на MongoDB (без переноса данных)
+
+Приложение остаётся на своей БД — переезжает только хранение логов. Существующие
+записи остаются там, где были: ничего не копируется и не переносится.
+
+```bash
+# 1. Хост-приложение устанавливает (опциональную) интеграцию с MongoDB
+composer require mongodb/laravel-mongodb
+
+# 2. Объявите соединение в config/database.php
+'connections' => [
+    'mongodb' => [
+        'driver'   => 'mongodb',
+        'dsn'      => env('MONGODB_URI', 'mongodb://localhost:27017'),
+        'database' => env('MONGODB_DATABASE', 'joblog'),
+    ],
+],
+```
+
+```dotenv
+# .env — лог теперь пишется и читается из MongoDB
+JOBLOG_DB_DRIVER=mongodb
+JOBLOG_DB_CONNECTION=mongodb
+```
+
+```bash
+# 3. Создать коллекции (unique job_uuid, индексы status/queue/queued_at/tags)
+php artisan migrate
+```
+
+`joblog:install` умеет выполнить переключение интерактивно (когда драйвер по
+умолчанию не поддерживается): допишет ключи в .env, проверит соединение и
+запустит миграции.
 
 ## Быстрый старт
 
@@ -337,6 +393,13 @@ class MyJobLogResource extends JobLogResource
 ```php
 // config/joblog.php
 return [
+    // Хранилище: connection null = соединение приложения по умолчанию (DB_CONNECTION),
+    // driver 'auto' = определить по фактическому драйверу соединения (pgsql|mongodb)
+    'database' => [
+        'connection' => env('JOBLOG_DB_CONNECTION'),
+        'driver' => env('JOBLOG_DB_DRIVER', 'auto'),
+    ],
+
     // Очистка старых записей
     'cleanup' => [
         'days' => (int) env('JOBLOG_CLEANUP_DAYS', 30),
@@ -362,6 +425,9 @@ return [
 ## Artisan команды
 
 ```bash
+# Мастер установки: публикация конфига, проверка драйвера, опциональное переключение на MongoDB
+php artisan joblog:install
+
 # Очистка записей старше N дней (по умолчанию: 30)
 php artisan joblog:cleanup
 php artisan joblog:cleanup --days=7

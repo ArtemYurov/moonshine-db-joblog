@@ -2,9 +2,11 @@
 
 namespace ArtemYurov\JobLog\Logger;
 
-use ArtemYurov\JobLog\Tags\TagResolver;
+use ArtemYurov\JobLog\Database\Contracts\JobLogStore;
+use ArtemYurov\JobLog\Database\JobLogStores;
 use ArtemYurov\JobLog\Enums\JobLogStatus;
-use ArtemYurov\JobLog\Models\JobLog;
+use ArtemYurov\JobLog\Models\Contracts\JobLogContract;
+use ArtemYurov\JobLog\Tags\TagResolver;
 use ArtemYurov\JobLog\Traits\JobLoggerMethods;
 use ArtemYurov\JobLog\Traits\Loggable;
 use Carbon\Carbon;
@@ -18,7 +20,7 @@ class JobLogger
 {
     use JobLoggerMethods;
 
-    protected JobLog $jobLog;
+    protected JobLogContract $jobLog;
 
     /** @var array<JobLoggerStep> */
     protected array $stepLoggers = [];
@@ -29,7 +31,8 @@ class JobLogger
         protected readonly bool   $autoStepProgress = true,
     )
     {
-        $this->jobLog = JobLog::findByJobUuid($jobUuid);
+        $this->jobLog = self::store()->findByJobUuid($jobUuid)
+            ?? throw new \RuntimeException('JobLog not found for UUID: ' . $jobUuid);
 
         $databaseHandler = new DatabaseHandler(Level::Debug, true);
         $databaseHandler->setJobLog($this->jobLog);
@@ -54,7 +57,7 @@ class JobLogger
         $tagResolver = app(TagResolver::class);
         $tags = $tagResolver->resolve($jobObject);
 
-        JobLog::create([
+        self::store()->createLog([
             'connection' => $connection,
             'queue' => $queueName,
             'job_uuid' => $uuid,
@@ -122,10 +125,7 @@ class JobLogger
 
     private function finalizeCurrentProcessingStep(JobLogStatus $status): void
     {
-        $processingStep = $this->jobLog->steps()
-            ->where('status', JobLogStatus::PROCESSING)
-            ->latest()
-            ->first();
+        $processingStep = self::store()->findProcessingStep($this->jobLog);
 
         if ($processingStep) {
             $stepLogger = new JobLoggerStep($this->jobLog, $processingStep->step_key, $processingStep->step_name);
@@ -138,6 +138,9 @@ class JobLogger
         return $this->jobLog->started_at;
     }
 
+    /**
+     * @return JobLogContract
+     */
     protected function getModel()
     {
         return $this->jobLog;
@@ -146,9 +149,14 @@ class JobLogger
     /**
      * The JobLog entry this logger is bound to (the job's own record).
      */
-    public function getJobLog(): JobLog
+    public function getJobLog(): JobLogContract
     {
         return $this->jobLog;
+    }
+
+    private static function store(): JobLogStore
+    {
+        return JobLogStores::resolve();
     }
 
     /**

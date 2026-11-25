@@ -3,13 +3,21 @@
 namespace ArtemYurov\JobLog;
 
 use ArtemYurov\JobLog\Commands\JobLogCleanupCommand;
+use ArtemYurov\JobLog\Commands\JobLogInstallCommand;
 use ArtemYurov\JobLog\Commands\JobLogTruncateCommand;
 use ArtemYurov\JobLog\Tags\TagResolver;
+use ArtemYurov\JobLog\Database\Contracts\JobLogStore;
+use ArtemYurov\JobLog\Database\JobLogDatabase;
+use ArtemYurov\JobLog\Database\JobLogStores;
+use ArtemYurov\JobLog\Database\Stores\EloquentJobLogStore;
+use ArtemYurov\JobLog\Database\Stores\MongoDbJobLogStore;
 use ArtemYurov\JobLog\Enums\JobLogStatus;
 use ArtemYurov\JobLog\Logger\JobLogger;
-use ArtemYurov\JobLog\Models\JobLog;
 use ArtemYurov\JobLog\Middleware\LoggableExceptionAttempts;
+use ArtemYurov\JobLog\MoonShine\Resources\JobLogRecordResource;
+use ArtemYurov\JobLog\MoonShine\Resources\JobLogStepResource;
 use ArtemYurov\JobLog\Traits\Loggable;
+use MoonShine\Contracts\Core\DependencyInjection\CoreContract;
 use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Queue\Events\JobProcessed;
 use Illuminate\Queue\Events\JobProcessing;
@@ -30,12 +38,23 @@ class JobLogServiceProvider extends ServiceProvider
         // Register TagResolver
         $this->app->singleton(TagResolver::class);
 
+        // Log storage: SQL (pgsql) or MongoDB, resolved from joblog.database
+        $this->app->singleton(JobLogStore::class, function () {
+            return JobLogDatabase::isMongo()
+                ? new MongoDbJobLogStore()
+                : new EloquentJobLogStore();
+        });
+
         // Optional Horizon purge interceptor
         $this->registerHorizonPurgeInterceptor();
     }
 
     public function boot(): void
     {
+        // Fail loudly (with the repository link) when the resolved driver
+        // is not supported — before any query gets a chance to run.
+        JobLogDatabase::guardWhenConfigured();
+
         $this->loadTranslationsFrom(__DIR__ . '/../lang', 'joblog');
 
         $this->publishes([
@@ -56,8 +75,11 @@ class JobLogServiceProvider extends ServiceProvider
             $this->commands([
                 JobLogCleanupCommand::class,
                 JobLogTruncateCommand::class,
+                JobLogInstallCommand::class,
             ]);
         }
+
+        $this->registerMoonShineResources();
 
         $this->registerQueueEventListeners();
         $this->registerCleanupSchedule();
@@ -103,6 +125,26 @@ class JobLogServiceProvider extends ServiceProvider
         $this->app->singleton(\Laravel\Horizon\Contracts\JobRepository::class, function ($app) {
             return new \ArtemYurov\JobLog\Horizon\LoggableRedisJobRepository($app['redis']);
         });
+    }
+
+    /**
+     * Register MoonShine relation-target resources (steps/records) in the core registry.
+     *
+     * MoonShine resolves class-string resources via core registry lookups
+     * (Core::resources() -> findByClass), so internal resources referenced by
+     * HasMany fields must be registered even when the host app registers
+     * only its own JobLogResource subclass.
+     */
+    private function registerMoonShineResources(): void
+    {
+        if (! $this->app->has(CoreContract::class)) {
+            return;
+        }
+
+        $this->app->make(CoreContract::class)->resources([
+            JobLogStepResource::class,
+            JobLogRecordResource::class,
+        ]);
     }
 
     /**
@@ -156,7 +198,7 @@ class JobLogServiceProvider extends ServiceProvider
                     return;
                 }
 
-                $currentStatus = JobLog::findByJobUuid($uuid)->status ?? null;
+                $currentStatus = JobLogStores::resolve()->findByJobUuid($uuid)?->status;
 
                 // Don't overwrite final status (job may call failed() inside handle())
                 if (in_array($currentStatus, [JobLogStatus::FAILED, JobLogStatus::INTERRUPTED])) {

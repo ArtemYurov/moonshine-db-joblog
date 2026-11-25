@@ -2,13 +2,18 @@
 
 namespace ArtemYurov\JobLog\Models;
 
+use ArtemYurov\JobLog\Database\JobLogDatabase;
 use ArtemYurov\JobLog\Enums\JobLogStatus;
+use ArtemYurov\JobLog\Models\Concerns\HasJobLogStepBehavior;
+use ArtemYurov\JobLog\Models\Contracts\JobLogStepContract;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class JobLogStep extends Model
+class JobLogStep extends Model implements JobLogStepContract
 {
+    use HasJobLogStepBehavior;
+
     protected $table = 'job_log_steps';
 
     protected $guarded = [];
@@ -25,6 +30,15 @@ class JobLogStep extends Model
         ];
     }
 
+    /**
+     * The log runs on the connection resolved from joblog.database — the
+     * application default when nothing is configured.
+     */
+    public function getConnectionName()
+    {
+        return JobLogDatabase::connectionName() ?? $this->connection;
+    }
+
     public function jobLog(): BelongsTo
     {
         return $this->belongsTo(JobLog::class);
@@ -33,22 +47,6 @@ class JobLogStep extends Model
     public function records(): HasMany
     {
         return $this->hasMany(JobLogRecord::class)
-            ->orderBy('created_at', 'desc');
-    }
-
-    public function getLastErrorRecord(): ?JobLogRecord
-    {
-        return $this->records()
-            ->where('level', 'error')
-            ->latest('created_at')
-            ->first();
-    }
-
-    public function getErrorRecords()
-    {
-        return $this->records()
-            ->where('level', 'error')
-            ->orderBy('created_at', 'desc')
-            ->get();
+            ->orderByDesc('created_at');
     }
 }

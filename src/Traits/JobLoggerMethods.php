@@ -4,7 +4,8 @@ namespace ArtemYurov\JobLog\Traits;
 
 use ArtemYurov\JobLog\Enums\JobLogStatus;
 use ArtemYurov\JobLog\Logger\PsrLogger;
-use ArtemYurov\JobLog\Models\JobLogStep;
+use ArtemYurov\JobLog\Models\Contracts\JobLogContract;
+use ArtemYurov\JobLog\Models\Contracts\JobLogStepContract;
 use Carbon\Carbon;
 use Psr\Log\LoggerInterface;
 
@@ -200,7 +201,7 @@ trait JobLoggerMethods
 
     protected function isStepModel(): bool
     {
-        return $this->getModel() instanceof JobLogStep;
+        return $this->getModel() instanceof JobLogStepContract;
     }
 
     protected function isConsoleOutputEnabled(): bool
@@ -283,5 +284,8 @@ trait JobLoggerMethods
         return $this;
     }
 
+    /**
+     * @return JobLogContract|JobLogStepContract
+     */
     abstract protected function getModel();
 }

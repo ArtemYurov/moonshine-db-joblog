@@ -2,10 +2,12 @@
 
 namespace ArtemYurov\JobLog\Models;
 
+use ArtemYurov\JobLog\Database\JobLogDatabase;
+use ArtemYurov\JobLog\Models\Contracts\JobLogRecordContract;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class JobLogRecord extends Model
+class JobLogRecord extends Model implements JobLogRecordContract
 {
     protected $table = 'job_log_records';
 
@@ -17,6 +19,15 @@ class JobLogRecord extends Model
         'context' => 'collection',
         'created_at' => 'datetime',
     ];
+
+    /**
+     * The log runs on the connection resolved from joblog.database — the
+     * application default when nothing is configured.
+     */
+    public function getConnectionName()
+    {
+        return JobLogDatabase::connectionName() ?? $this->connection;
+    }
 
     public function jobLog(): BelongsTo
     {

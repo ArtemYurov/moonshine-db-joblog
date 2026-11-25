@@ -3,6 +3,25 @@
 return [
     /*
     |--------------------------------------------------------------------------
+    | Database Connection & Driver
+    |--------------------------------------------------------------------------
+    | connection — named connection from the host's config/database.php.
+    | When null, the application default connection is used (DB_CONNECTION),
+    | so nothing has to be configured on a standard PostgreSQL setup.
+    |
+    | driver — 'auto' (default) resolves the driver from the actual
+    | connection settings. Can be forced to 'pgsql' or 'mongodb' — this is
+    | how the log is switched to MongoDB while the app stays on its own
+    | database (no data is migrated). Any other driver is rejected with a
+    | link to the repository issues.
+    */
+    'database' => [
+        'connection' => env('JOBLOG_DB_CONNECTION'),
+        'driver' => env('JOBLOG_DB_DRIVER', 'auto'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Old Records Cleanup
     |--------------------------------------------------------------------------
     | schedule — automatic registration in Laravel Schedule

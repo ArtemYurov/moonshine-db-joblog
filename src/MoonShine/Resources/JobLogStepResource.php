@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace ArtemYurov\JobLog\MoonShine\Resources;
 
 use MoonShine\Support\Enums\Action;
+use ArtemYurov\JobLog\Database\ModelResolver;
+use MoonShine\Contracts\Core\DependencyInjection\CoreContract;
 use ArtemYurov\JobLog\Enums\JobLogStatus;
 use ArtemYurov\JobLog\Models\JobLogStep;
 use ArtemYurov\JobLog\MoonShine\Traits\JobLogErrorFormatter;
@@ -31,6 +33,14 @@ class JobLogStepResource extends ModelResource
 
     protected string $model = JobLogStep::class;
 
+    public function __construct(CoreContract $core)
+    {
+        // SQL or MongoDB model, per the resolved joblog.database driver.
+        $this->model = ModelResolver::jobLogStep();
+
+        parent::__construct($core);
+    }
+
     public function getTitle(): string
     {
         return __('joblog::joblog.resource.job_log_steps');
@@ -56,8 +66,8 @@ class JobLogStepResource extends ModelResource
 
             Textarea::make(__('joblog::joblog.step.last_error'), 'last_error', fn($item) => $this->formatLastError($item->getLastErrorRecord())),
             Number::make('%', 'progress'),
-            Enum::make(__('joblog::joblog.field.status'), 'status')->attach(JobLogStatus::class)->bold(),
-            Number::make('', 'runtime_seconds', fn($item) => $item->runtime_seconds ? "{$item->runtime_seconds}\u{00A0}s" : '')->align('right'),
+            Enum::make(__('joblog::joblog.field.status'), 'status')->attach(JobLogStatus::class)->customWrapperAttributes(['class' => 'font-bold']),
+            Number::make('', 'runtime_seconds', fn($item) => $item->runtime_seconds ? "{$item->runtime_seconds}\u{00A0}s" : '')->customWrapperAttributes(['class' => 'text-right']),
         ];
     }
 

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace ArtemYurov\JobLog\MoonShine\Pages;
 
+use ArtemYurov\JobLog\Database\ModelResolver;
 use ArtemYurov\JobLog\Enums\JobLogStatus;
-use ArtemYurov\JobLog\Models\JobLog;
 use Illuminate\Database\Eloquent\Builder;
 use MoonShine\AssetManager\InlineCss;
 use MoonShine\Contracts\UI\ActionButtonContract;
@@ -167,29 +167,42 @@ class JobLogIndexPage extends IndexPage
 
     private function getJobClassOptions(): array
     {
-        return JobLog::select('job_class')
-            ->distinct()
+        $model = ModelResolver::jobLog();
+
+        // No SQL distinct(): the MongoDB query builder turns distinct() into the
+        // flat "distinct" command, which breaks the subsequent pluck() —
+        // deduplication is done in PHP instead, so both drivers behave the same.
+        return $model::query()
             ->whereNotNull('job_class')
             ->pluck('job_class')
+            ->unique()
+            ->values()
             ->mapWithKeys(fn($class) => [$class => class_basename($class)])
             ->toArray();
     }
 
     private function getQueueOptions(): array
     {
-        return JobLog::select('queue')
-            ->distinct()
+        $model = ModelResolver::jobLog();
+
+        return $model::query()
             ->whereNotNull('queue')
-            ->pluck('queue', 'queue')
+            ->pluck('queue')
+            ->unique()
+            ->values()
+            ->mapWithKeys(fn($queue) => [$queue => $queue])
             ->toArray();
     }
 
     private function getRelatedModelOptions(): array
     {
-        return JobLog::select('related_type')
-            ->distinct()
+        $model = ModelResolver::jobLog();
+
+        return $model::query()
             ->whereNotNull('related_type')
             ->pluck('related_type')
+            ->unique()
+            ->values()
             ->mapWithKeys(function ($className) {
                 $baseName = class_basename($className);
                 return [$className => $baseName];

@@ -14,6 +14,7 @@ Track your queue jobs in real-time: statuses, steps, progress, errors — all vi
 ## Features
 
 - Automatic tracking of queue job lifecycle (queued → processing → processed/failed)
+- Two supported storages: PostgreSQL (zero configuration) and MongoDB (opt-in switch, no data migration)
 - Step-by-step progress with named steps
 - PSR-3 compatible logging (emergency, alert, critical, error, warning, notice, info, debug)
 - Polymorphic `related` relation — link any Eloquent model to a job
@@ -43,6 +44,12 @@ The package auto-discovers the service provider. Run migrations:
 php artisan migrate
 ```
 
+Or use the guided installer (publishes the config, verifies the database driver, offers a MongoDB switch when the default driver is unsupported):
+
+```bash
+php artisan joblog:install
+```
+
 Optionally publish the config:
 
 ```bash
@@ -58,6 +65,55 @@ php artisan vendor:publish --tag=joblog-lang
 ```
 
 Files will be placed in `lang/vendor/joblog/`. Translation namespace: `joblog::joblog`.
+
+## Database storage (PostgreSQL / MongoDB)
+
+**PostgreSQL is the default and requires no configuration.** When nothing is
+overridden, the package uses the application's default connection — whatever
+`DB_CONNECTION` points to.
+
+### Driver resolution flow
+
+1. `joblog.database.connection` is null → the application default connection is used;
+2. `joblog.database.driver` is `auto` (default) → the driver is taken from the actual connection settings;
+3. an explicit `driver` must match the actual connection driver;
+4. anything outside `pgsql` / `mongodb` is rejected with an error message linking
+   to the repository issues — asking the author for support:
+   [issues](https://github.com/ArtemYurov/moonshine-db-joblog/issues)
+
+### Switching the log to MongoDB (without migrating data)
+
+The application keeps its own database; only the log storage moves. Existing
+records stay where they are — nothing is copied or migrated.
+
+```bash
+# 1. Host application installs the (optional) MongoDB integration
+composer require mongodb/laravel-mongodb
+
+# 2. Declare the connection in config/database.php
+'connections' => [
+    'mongodb' => [
+        'driver'   => 'mongodb',
+        'dsn'      => env('MONGODB_URI', 'mongodb://localhost:27017'),
+        'database' => env('MONGODB_DATABASE', 'joblog'),
+    ],
+],
+```
+
+```dotenv
+# .env — the log now writes and reads from MongoDB
+JOBLOG_DB_DRIVER=mongodb
+JOBLOG_DB_CONNECTION=mongodb
+```
+
+```bash
+# 3. Create the collections (unique job_uuid, status/queue/queued_at/tags indexes)
+php artisan migrate
+```
+
+`joblog:install` can do the switch interactively (when the default driver is
+unsupported): it appends the env keys, validates the connection and runs the
+migrations.
 
 ## Quick Start
 
@@ -336,6 +392,13 @@ class MyJobLogResource extends JobLogResource
 ```php
 // config/joblog.php
 return [
+    // Database storage: connection null = application default (DB_CONNECTION),
+    // driver 'auto' = resolve from the connection's actual driver (pgsql|mongodb)
+    'database' => [
+        'connection' => env('JOBLOG_DB_CONNECTION'),
+        'driver' => env('JOBLOG_DB_DRIVER', 'auto'),
+    ],
+
     // Cleanup old records
     'cleanup' => [
         'days' => (int) env('JOBLOG_CLEANUP_DAYS', 30),
@@ -361,6 +424,9 @@ return [
 ## Artisan commands
 
 ```bash
+# Guided installation: publish config, verify the driver, optionally switch to MongoDB
+php artisan joblog:install
+
 # Cleanup records older than N days (default: 30)
 php artisan joblog:cleanup
 php artisan joblog:cleanup --days=7

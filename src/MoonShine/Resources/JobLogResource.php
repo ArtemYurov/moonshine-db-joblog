@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace ArtemYurov\JobLog\MoonShine\Resources;
 
 use MoonShine\Support\Enums\Action;
+use ArtemYurov\JobLog\Database\ModelResolver;
+use MoonShine\Contracts\Core\DependencyInjection\CoreContract;
 use ArtemYurov\JobLog\Enums\JobLogStatus;
+use ArtemYurov\JobLog\Models\Contracts\JobLogContract;
 use ArtemYurov\JobLog\Models\JobLog;
 use ArtemYurov\JobLog\MoonShine\Traits\JobLogErrorFormatter;
 use ArtemYurov\JobLog\MoonShine\Traits\SuperUserAccess;
@@ -33,6 +36,14 @@ class JobLogResource extends ModelResource
     use JobLogErrorFormatter;
 
     protected string $model = JobLog::class;
+
+    public function __construct(CoreContract $core)
+    {
+        // SQL or MongoDB model, per the resolved joblog.database driver.
+        $this->model = ModelResolver::jobLog();
+
+        parent::__construct($core);
+    }
 
     protected string $sortColumn = 'queued_at';
 
@@ -73,14 +84,14 @@ class JobLogResource extends ModelResource
             Date::make(__('joblog::joblog.field.queued_at'), 'queued_at')->withTime()->changePreview(fn($value) => $this->formatDateTimeWithBreak($value))->sortable()->columnSelection(),
             Date::make(__('joblog::joblog.field.started_at'), 'started_at')->withTime()->changePreview(fn($value) => $this->formatDateTimeWithBreak($value))->sortable()->columnSelection(),
             Date::make(__('joblog::joblog.field.finished_at'), 'finished_at')->withTime()->changePreview(fn($value) => $this->formatDateTimeWithBreak($value))->sortable()->columnSelection(),
-            Textarea::make(__('joblog::joblog.field.error'), formatted: fn(JobLog $item) => $this->formatLastError($item->latestErrorRecord, 100, ''))->columnSelection(),
+            Textarea::make(__('joblog::joblog.field.error'), formatted: fn(JobLogContract $item) => $this->formatLastError($item->latestErrorRecord, 100, ''))->columnSelection(),
             Text::make(__('joblog::joblog.field.current_step'), 'current_step', function($item) {
                 return $item->latestStep ? $item->latestStep->step_key : '-';
-            })->align('right')->columnSelection(),
-            Number::make('', 'progress', fn($value) => $value->progress . '%')->align('right')->columnSelection(),
-            Enum::make(__('joblog::joblog.field.status'), 'status')->attach(JobLogStatus::class)->sortable()->bold()->customWrapperAttributes(['style' => 'white-space:nowrap']),
+            })->customWrapperAttributes(['class' => 'text-right'])->columnSelection(),
+            Number::make('', 'progress', fn($value) => $value->progress . '%')->customWrapperAttributes(['class' => 'text-right'])->columnSelection(),
+            Enum::make(__('joblog::joblog.field.status'), 'status')->attach(JobLogStatus::class)->sortable()->customWrapperAttributes(['class' => 'font-bold', 'style' => 'white-space:nowrap']),
             Text::make(__('joblog::joblog.field.custom_status'), 'custom_status')->columnSelection(),
-            Number::make('', 'runtime_seconds', fn($item) => $item->runtime_seconds ? "{$item->runtime_seconds}\u{00A0}s" : '')->align('right')->columnSelection(),
+            Number::make('', 'runtime_seconds', fn($item) => $item->runtime_seconds ? "{$item->runtime_seconds}\u{00A0}s" : '')->customWrapperAttributes(['class' => 'text-right'])->columnSelection(),
         ];
     }
 
@@ -107,7 +118,7 @@ class JobLogResource extends ModelResource
             Json::make(__('joblog::joblog.field.data'), 'data')->keyValue(),
             HasMany::make(__('joblog::joblog.field.steps'), 'steps', resource: JobLogStepResource::class)->searchable(false)->withoutModals(),
             HasMany::make(__('joblog::joblog.field.records'), 'records', resource: JobLogRecordResource::class)->searchable(false)->withoutModals(),
-            Textarea::make(__('joblog::joblog.field.last_error'), formatted: fn(JobLog $item) => $this->formatLastError($item->getLastErrorRecord(), 1000)),
+            Textarea::make(__('joblog::joblog.field.last_error'), formatted: fn(JobLogContract $item) => $this->formatLastError($item->getLastErrorRecord(), 1000)),
         ];
     }
 
@@ -119,7 +130,7 @@ class JobLogResource extends ModelResource
         return [];
     }
 
-    protected function formatRelated(JobLog $item): string
+    protected function formatRelated(JobLogContract $item): string
     {
         if (!$item->related_type) {
             return '-';

@@ -2,32 +2,32 @@
 
 namespace ArtemYurov\JobLog\Logger;
 
-use ArtemYurov\JobLog\Models\JobLog;
-use ArtemYurov\JobLog\Models\JobLogRecord;
+use ArtemYurov\JobLog\Database\JobLogStores;
+use ArtemYurov\JobLog\Models\Contracts\JobLogContract;
 use Monolog\Handler\AbstractProcessingHandler;
 use Monolog\LogRecord;
 
 class DatabaseHandler extends AbstractProcessingHandler
 {
-    private JobLog $jobLog;
-    private ?int $stepId = null;
+    private JobLogContract $jobLog;
+    private mixed $stepId = null;
 
-    public function setJobLog(JobLog $jobLog): void
+    public function setJobLog(JobLogContract $jobLog): void
     {
         $this->jobLog = $jobLog;
     }
 
-    public function getJobLog(): JobLog
+    public function getJobLog(): JobLogContract
     {
         return $this->jobLog;
     }
 
-    public function setStepId(?int $stepId): void
+    public function setStepId(mixed $stepId): void
     {
         $this->stepId = $stepId;
     }
 
-    public function getStepId(): ?int
+    public function getStepId(): mixed
     {
         return $this->stepId;
     }
@@ -53,14 +53,14 @@ class DatabaseHandler extends AbstractProcessingHandler
             $context['line'] = $line;
         }
 
-        JobLogRecord::create([
-            'job_log_id' => $this->jobLog->id,
-            'job_log_step_id' => $this->stepId,
-            'level' => strtolower($record->level->name),
-            'message' => $record->message,
-            'context' => !empty($context) ? $context : null,
-            'trace' => $trace,
-            'created_at' => $record->datetime,
-        ]);
+        JobLogStores::resolve()->createRecord(
+            $this->jobLog,
+            $this->stepId,
+            strtolower($record->level->name),
+            $record->message,
+            !empty($context) ? $context : null,
+            $trace,
+            $record->datetime,
+        );
     }
 }
