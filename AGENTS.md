@@ -9,17 +9,22 @@ Laravel package for job queue logging with MoonShine admin panel integration. Tr
 - **Language:** PHP 8.2+
 - **Framework:** Laravel 11.x / 12.x (package)
 - **Admin Panel:** MoonShine 4.x
+- **Storage:** PostgreSQL (SQLite in tests); MongoDB optional via mongodb/laravel-mongodb
 - **Testing:** PHPUnit 10.5+ / 11.0+
 
 ## Project Structure
 ```
 src/
-├── Commands/               # Artisan commands (cleanup, truncate)
+├── Commands/               # Artisan commands (install, cleanup, truncate)
+├── Database/               # Storage resolution: JobLogStorage, JobLogModelResolver, exceptions
 ├── Enums/                  # JobLogStatus enum
 ├── Horizon/                # Horizon integration (tag resolver, Redis repository)
 ├── Logger/                 # Core logging (JobLogger, DatabaseHandler, JobLoggerStep)
 ├── Middleware/              # Job middleware (LoggableExceptionAttempts)
 ├── Models/                 # Eloquent models (JobLog, JobLogStep, JobLogRecord)
+│   ├── Concerns/           # Behaviour shared by the SQL and MongoDB models
+│   ├── Contracts/          # Model contracts the package types against
+│   └── Mongo/              # MongoDB models and their casts
 ├── MoonShine/
 │   ├── Pages/              # Custom MoonShine pages
 │   ├── Resources/          # MoonShine CRUD resources
@@ -32,7 +37,9 @@ config/
 └── joblog.php              # Package configuration
 
 database/
-└── migrations/             # Three migration files (job_logs, job_log_steps, job_log_records)
+└── migrations/
+    ├── sql/                # PostgreSQL/SQLite tables (job_logs, job_log_steps, job_log_records)
+    └── mongodb/            # MongoDB collections; the provider loads only the folder of the storage in use
 
 lang/
 ├── en/joblog.php           # English translations

@@ -14,7 +14,7 @@
 ## Возможности
 
 - Автоматическое отслеживание жизненного цикла job (queued → processing → processed/failed)
-- Два поддерживаемых хранилища: PostgreSQL (без настройки) и MongoDB (опциональное переключение, без переноса данных)
+- Хранение логов в PostgreSQL (без настройки), SQLite (тесты, локально) или MongoDB (опциональное переключение, без переноса данных)
 - Пошаговый прогресс с именованными шагами
 - PSR-3 совместимое логирование (emergency, alert, critical, error, warning, notice, info, debug)
 - Полиморфная связь `related` — привязка любой Eloquent-модели к задаче
@@ -31,6 +31,7 @@
 - PHP 8.2+
 - Laravel 11.x, 12.x или 13.x
 - MoonShine 4.x
+- PostgreSQL, SQLite или MongoDB для лога (MySQL и MariaDB не поддерживаются)
 
 ## Установка
 
@@ -44,7 +45,8 @@ composer require artemyurov/moonshine-db-joblog
 php artisan migrate
 ```
 
-Или используйте мастер установки (публикует конфиг, проверяет драйвер БД и предлагает переключение на MongoDB, если драйвер по умолчанию не поддерживается):
+Или используйте установщик: он покажет драйвер и соединение, в которых будет храниться лог, и
+запустит `migrate` (MongoDB — см. [Хранилище](#хранилище)):
 
 ```bash
 php artisan joblog:install
@@ -66,54 +68,65 @@ php artisan vendor:publish --tag=joblog-lang
 
 Файлы будут размещены в `lang/vendor/joblog/`. Пространство имён переводов: `joblog::joblog`.
 
-## Хранилище (PostgreSQL / MongoDB)
+## Хранилище
 
-**PostgreSQL — хранилище по умолчанию и не требует настройки.** Пока ничего
-не переопределено, пакет использует соединение приложения по умолчанию — то,
-на которое указывает `DB_CONNECTION`.
+Лог хранится в соединении из `joblog.database.connection` (`JOBLOG_DB_CONNECTION`), а если оно не
+задано — в соединении приложения по умолчанию (`DB_CONNECTION`). Драйвер всегда берётся из этого
+соединения:
 
-### Flow выбора драйвера
+- `pgsql` — основное хранилище, настраивать ничего не нужно;
+- `sqlite` — тесты и локальная разработка;
+- `mongodb` — по выбору, нужен пакет `mongodb/laravel-mongodb`.
 
-1. `joblog.database.connection` не задан → используется соединение приложения по умолчанию;
-2. `joblog.database.driver` = `auto` (по умолчанию) → драйвер берётся из фактических настроек соединения;
-3. явно заданный `driver` обязан совпадать с фактическим драйвером соединения;
-4. всё, кроме `pgsql` / `mongodb`, отвергается ошибкой со ссылкой на issues
-   репозитория — с просьбой написать автору о необходимости поддержки:
-   [issues](https://github.com/ArtemYurov/moonshine-db-joblog/issues)
+Любой другой драйвер (MySQL, MariaDB, …) отвергается при загрузке ошибкой со ссылкой на
+[issues репозитория](https://github.com/ArtemYurov/moonshine-db-joblog/issues) — там можно попросить
+автора о поддержке.
 
-### Переключение лога на MongoDB (без переноса данных)
+### Переключение лога на MongoDB
 
-Приложение остаётся на своей БД — переезжает только хранение логов. Существующие
-записи остаются там, где были: ничего не копируется и не переносится.
+Приложение остаётся на своей БД — переезжает только хранение логов. Существующие записи не
+копируются.
 
-```bash
-# 1. Хост-приложение устанавливает (опциональную) интеграцию с MongoDB
-composer require mongodb/laravel-mongodb
+1. Установите интеграцию (нужно PHP-расширение `ext-mongodb`):
 
-# 2. Объявите соединение в config/database.php
-'connections' => [
-    'mongodb' => [
-        'driver'   => 'mongodb',
-        'dsn'      => env('MONGODB_URI', 'mongodb://localhost:27017'),
-        'database' => env('MONGODB_DATABASE', 'joblog'),
-    ],
-],
+   ```bash
+   composer require mongodb/laravel-mongodb
+   ```
+
+2. Объявите соединение в `config/database.php`:
+
+   ```php
+   'connections' => [
+       'mongodb' => [
+           'driver'   => 'mongodb',
+           'dsn'      => env('MONGODB_URI', 'mongodb://localhost:27017'),
+           'database' => env('MONGODB_DATABASE', 'joblog'),
+       ],
+   ],
+   ```
+
+3. Переключите лог и создайте коллекции:
+
+   ```bash
+   php artisan joblog:install --mongo                    # соединение "mongodb"
+   php artisan joblog:install --mongo --connection=logs  # любое другое MongoDB-соединение
+   ```
+
+   Команда проверяет, что соединение существует, использует драйвер `mongodb` и пакет установлен,
+   запускает `migrate` и только после успеха записывает `JOBLOG_DB_CONNECTION` в `.env`
+   (существующая строка заменяется). `--force` снимает подтверждение `migrate` в production. Если
+   конфигурация закэширована, после этого выполните `php artisan config:cache` ещё раз.
+
+   Вручную — то же самое: `JOBLOG_DB_CONNECTION=mongodb` в `.env`, затем `php artisan migrate`.
+
+На MongoDB список MoonShine догружает `latestStep` и `latestErrorRecord` по строке, одним запросом
+на строку: жадная загрузка `hasOne` там читает все шаги и ошибки логов страницы. Если включён
+`Model::preventLazyLoading()`, объявите `$with` в наследнике `JobLogResource` — объявленный в наследнике
+`$with` остаётся как есть:
+
+```php
+protected array $with = ['latestStep', 'latestErrorRecord'];
 ```
-
-```dotenv
-# .env — лог теперь пишется и читается из MongoDB
-JOBLOG_DB_DRIVER=mongodb
-JOBLOG_DB_CONNECTION=mongodb
-```
-
-```bash
-# 3. Создать коллекции (unique job_uuid, индексы status/queue/queued_at/tags)
-php artisan migrate
-```
-
-`joblog:install` умеет выполнить переключение интерактивно (когда драйвер по
-умолчанию не поддерживается): допишет ключи в .env, проверит соединение и
-запустит миграции.
 
 ## Быстрый старт
 
@@ -373,11 +386,12 @@ new JobLogWithoutOverlapping(30);                   // сериализация:
 Создайте кастомный ресурс, наследующий `JobLogResource`, для доменно-специфичного форматирования:
 
 ```php
+use ArtemYurov\JobLog\Models\Contracts\JobLogContract;
 use ArtemYurov\JobLog\MoonShine\Resources\JobLogResource;
 
 class MyJobLogResource extends JobLogResource
 {
-    protected function formatRelated(JobLog $item): string
+    protected function formatRelated(JobLogContract $item): string
     {
         if ($item->related instanceof Branch) {
             return $item->related->city ?? "Филиал #{$item->related->getKey()}";
@@ -393,11 +407,10 @@ class MyJobLogResource extends JobLogResource
 ```php
 // config/joblog.php
 return [
-    // Хранилище: connection null = соединение приложения по умолчанию (DB_CONNECTION),
-    // driver 'auto' = определить по фактическому драйверу соединения (pgsql|mongodb)
+    // Соединение хранилища: null = соединение приложения по умолчанию (DB_CONNECTION);
+    // драйвер берётся из этого соединения (pgsql, sqlite или mongodb)
     'database' => [
         'connection' => env('JOBLOG_DB_CONNECTION'),
-        'driver' => env('JOBLOG_DB_DRIVER', 'auto'),
     ],
 
     // Очистка старых записей
@@ -425,8 +438,11 @@ return [
 ## Artisan команды
 
 ```bash
-# Мастер установки: публикация конфига, проверка драйвера, опциональное переключение на MongoDB
+# Показать хранилище лога (драйвер, соединение) и запустить миграции
 php artisan joblog:install
+
+# Переключить лог на MongoDB: проверки, migrate, затем JOBLOG_DB_CONNECTION в .env
+php artisan joblog:install --mongo [--connection=mongodb] [--force]
 
 # Очистка записей старше N дней (по умолчанию: 30)
 php artisan joblog:cleanup
@@ -435,6 +451,28 @@ php artisan joblog:cleanup --days=7
 # Полная очистка всех записей
 php artisan joblog:truncate
 ```
+
+## Обновление на 2.0
+
+- **MySQL и MariaDB не поддерживаются**: сервис-провайдер бросает исключение при загрузке, если
+  соединение лога использует драйвер, отличный от `pgsql`, `sqlite` и `mongodb`.
+- **Сигнатуры принимают контракты моделей** (`ArtemYurov\JobLog\Models\Contracts\JobLogContract`)
+  вместо SQL-моделей, чтобы подходили оба хранилища. Обновите переопределения и тестовые двойники:
+  - `JobLogger::getJobLog(): JobLogContract`;
+  - `DatabaseHandler::setJobLog(JobLogContract)`, `getJobLog(): JobLogContract`; id шага — `mixed`;
+  - `JobLogResource::formatRelated(JobLogContract $item)`;
+  - `JobLogWithoutOverlapping::findActiveOverlap()` и `findActiveOverlapByTags()` — `JobLogContract` на входе и выходе.
+- **Запросы к логу — через `JobLogModelResolver`**: `JobLogModelResolver::log()` — класс модели текущего
+  хранилища. Захардкоженный `ArtemYurov\JobLog\Models\JobLog` по-прежнему работает на SQL, но при
+  логе в MongoDB отправит SQL-запросы в MongoDB-соединение и упадёт. Теги сопоставляйте scope
+  `withAllTags()` вместо `whereJsonContains()`:
+
+  ```php
+  use ArtemYurov\JobLog\Database\JobLogModelResolver;
+
+  JobLogModelResolver::log()::query()->withAllTags(['payments:1'])->exists();
+  JobLogModelResolver::log()::getLatestCompletedFinishedTime(SyncOrdersJob::class);
+  ```
 
 ## Лицензия
 

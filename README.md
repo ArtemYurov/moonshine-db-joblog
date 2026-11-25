@@ -14,7 +14,7 @@ Track your queue jobs in real-time: statuses, steps, progress, errors — all vi
 ## Features
 
 - Automatic tracking of queue job lifecycle (queued → processing → processed/failed)
-- Two supported storages: PostgreSQL (zero configuration) and MongoDB (opt-in switch, no data migration)
+- Log storage on PostgreSQL (zero configuration), SQLite (tests, local) or MongoDB (opt-in switch, no data migration)
 - Step-by-step progress with named steps
 - PSR-3 compatible logging (emergency, alert, critical, error, warning, notice, info, debug)
 - Polymorphic `related` relation — link any Eloquent model to a job
@@ -31,6 +31,7 @@ Track your queue jobs in real-time: statuses, steps, progress, errors — all vi
 - PHP 8.2+
 - Laravel 11.x, 12.x or 13.x
 - MoonShine 4.x
+- PostgreSQL, SQLite or MongoDB for the log (MySQL and MariaDB are not supported)
 
 ## Installation
 
@@ -44,7 +45,8 @@ The package auto-discovers the service provider. Run migrations:
 php artisan migrate
 ```
 
-Or use the guided installer (publishes the config, verifies the database driver, offers a MongoDB switch when the default driver is unsupported):
+Or use the installer: it prints the driver and connection the log will use, then runs `migrate`
+(MongoDB: see [Database storage](#database-storage)):
 
 ```bash
 php artisan joblog:install
@@ -66,54 +68,65 @@ php artisan vendor:publish --tag=joblog-lang
 
 Files will be placed in `lang/vendor/joblog/`. Translation namespace: `joblog::joblog`.
 
-## Database storage (PostgreSQL / MongoDB)
+## Database storage
 
-**PostgreSQL is the default and requires no configuration.** When nothing is
-overridden, the package uses the application's default connection — whatever
-`DB_CONNECTION` points to.
+The log lives on the connection named in `joblog.database.connection` (`JOBLOG_DB_CONNECTION`), or
+on the application default connection (`DB_CONNECTION`) when that is not set. Its driver is always
+the connection's own:
 
-### Driver resolution flow
+- `pgsql` — the main storage, nothing to configure;
+- `sqlite` — tests and local development;
+- `mongodb` — opt-in, needs the `mongodb/laravel-mongodb` package.
 
-1. `joblog.database.connection` is null → the application default connection is used;
-2. `joblog.database.driver` is `auto` (default) → the driver is taken from the actual connection settings;
-3. an explicit `driver` must match the actual connection driver;
-4. anything outside `pgsql` / `mongodb` is rejected with an error message linking
-   to the repository issues — asking the author for support:
-   [issues](https://github.com/ArtemYurov/moonshine-db-joblog/issues)
+Any other driver (MySQL, MariaDB, …) is rejected at boot with an error that links to the
+[repository issues](https://github.com/ArtemYurov/moonshine-db-joblog/issues) — ask the author for
+support there.
 
-### Switching the log to MongoDB (without migrating data)
+### Switching the log to MongoDB
 
-The application keeps its own database; only the log storage moves. Existing
-records stay where they are — nothing is copied or migrated.
+The application keeps its own database; only the log storage moves. Existing records are not
+copied.
 
-```bash
-# 1. Host application installs the (optional) MongoDB integration
-composer require mongodb/laravel-mongodb
+1. Install the integration (needs the `ext-mongodb` PHP extension):
 
-# 2. Declare the connection in config/database.php
-'connections' => [
-    'mongodb' => [
-        'driver'   => 'mongodb',
-        'dsn'      => env('MONGODB_URI', 'mongodb://localhost:27017'),
-        'database' => env('MONGODB_DATABASE', 'joblog'),
-    ],
-],
+   ```bash
+   composer require mongodb/laravel-mongodb
+   ```
+
+2. Declare the connection in `config/database.php`:
+
+   ```php
+   'connections' => [
+       'mongodb' => [
+           'driver'   => 'mongodb',
+           'dsn'      => env('MONGODB_URI', 'mongodb://localhost:27017'),
+           'database' => env('MONGODB_DATABASE', 'joblog'),
+       ],
+   ],
+   ```
+
+3. Switch the log and create the collections:
+
+   ```bash
+   php artisan joblog:install --mongo                    # connection "mongodb"
+   php artisan joblog:install --mongo --connection=logs  # any other MongoDB connection
+   ```
+
+   The command checks that the connection exists, uses the `mongodb` driver and that the package is
+   installed, runs `migrate`, and only once that succeeds writes `JOBLOG_DB_CONNECTION` to `.env`
+   (an existing line is replaced). `--force` skips the production confirmation of `migrate`. With a
+   cached configuration, run `php artisan config:cache` again afterwards.
+
+   By hand it is the same: `JOBLOG_DB_CONNECTION=mongodb` in `.env`, then `php artisan migrate`.
+
+On MongoDB the MoonShine list loads `latestStep` and `latestErrorRecord` lazily, one query per row:
+eager loading a `hasOne` there reads every step and error record of the page. With
+`Model::preventLazyLoading()` enabled, declare `$with` in your `JobLogResource` subclass — a `$with`
+declared by a subclass is kept as is:
+
+```php
+protected array $with = ['latestStep', 'latestErrorRecord'];
 ```
-
-```dotenv
-# .env — the log now writes and reads from MongoDB
-JOBLOG_DB_DRIVER=mongodb
-JOBLOG_DB_CONNECTION=mongodb
-```
-
-```bash
-# 3. Create the collections (unique job_uuid, status/queue/queued_at/tags indexes)
-php artisan migrate
-```
-
-`joblog:install` can do the switch interactively (when the default driver is
-unsupported): it appends the env keys, validates the connection and runs the
-migrations.
 
 ## Quick Start
 
@@ -372,11 +385,12 @@ run that is still legitimately going.
 Create a custom resource that extends `JobLogResource` to add domain-specific formatting:
 
 ```php
+use ArtemYurov\JobLog\Models\Contracts\JobLogContract;
 use ArtemYurov\JobLog\MoonShine\Resources\JobLogResource;
 
 class MyJobLogResource extends JobLogResource
 {
-    protected function formatRelated(JobLog $item): string
+    protected function formatRelated(JobLogContract $item): string
     {
         if ($item->related instanceof Branch) {
             return $item->related->city ?? "Branch #{$item->related->getKey()}";
@@ -392,11 +406,10 @@ class MyJobLogResource extends JobLogResource
 ```php
 // config/joblog.php
 return [
-    // Database storage: connection null = application default (DB_CONNECTION),
-    // driver 'auto' = resolve from the connection's actual driver (pgsql|mongodb)
+    // Log storage connection: null = application default (DB_CONNECTION);
+    // the driver comes from that connection (pgsql, sqlite or mongodb)
     'database' => [
         'connection' => env('JOBLOG_DB_CONNECTION'),
-        'driver' => env('JOBLOG_DB_DRIVER', 'auto'),
     ],
 
     // Cleanup old records
@@ -424,8 +437,11 @@ return [
 ## Artisan commands
 
 ```bash
-# Guided installation: publish config, verify the driver, optionally switch to MongoDB
+# Show the log storage (driver, connection) and run migrations
 php artisan joblog:install
+
+# Switch the log to MongoDB: checks, migrate, then JOBLOG_DB_CONNECTION in .env
+php artisan joblog:install --mongo [--connection=mongodb] [--force]
 
 # Cleanup records older than N days (default: 30)
 php artisan joblog:cleanup
@@ -434,6 +450,28 @@ php artisan joblog:cleanup --days=7
 # Truncate all records
 php artisan joblog:truncate
 ```
+
+## Upgrading to 2.0
+
+- **MySQL and MariaDB are not supported**: the service provider throws at boot when the log
+  connection uses a driver other than `pgsql`, `sqlite` or `mongodb`.
+- **Signatures take the model contracts** (`ArtemYurov\JobLog\Models\Contracts\JobLogContract`)
+  instead of the SQL models, so both storages fit. Update overrides and test doubles of:
+  - `JobLogger::getJobLog(): JobLogContract`;
+  - `DatabaseHandler::setJobLog(JobLogContract)`, `getJobLog(): JobLogContract`; the step id is `mixed`;
+  - `JobLogResource::formatRelated(JobLogContract $item)`;
+  - `JobLogWithoutOverlapping::findActiveOverlap()` and `findActiveOverlapByTags()` — `JobLogContract` in and out.
+- **Query the log through `JobLogModelResolver`**: `JobLogModelResolver::log()` is the model class of the
+  current storage. A hard-coded `ArtemYurov\JobLog\Models\JobLog` still works on SQL, but with the
+  log in MongoDB it sends SQL queries to the MongoDB connection and fails. Match tags with the
+  `withAllTags()` scope instead of `whereJsonContains()`:
+
+  ```php
+  use ArtemYurov\JobLog\Database\JobLogModelResolver;
+
+  JobLogModelResolver::log()::query()->withAllTags(['payments:1'])->exists();
+  JobLogModelResolver::log()::getLatestCompletedFinishedTime(SyncOrdersJob::class);
+  ```
 
 ## License
 

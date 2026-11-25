@@ -22,6 +22,7 @@ A Laravel package (library) that provides job queue logging with MoonShine admin
 - **Testing:** PHPUnit 10.5+ / 11.0+
 - **Logging:** Monolog 3.0+
 - **Optional:** Laravel Horizon (tag resolution, purge interception)
+- **Optional:** MongoDB log storage (mongodb/laravel-mongodb, ext-mongodb)
 
 ## Architecture Notes
 - PSR-4 autoloading under `ArtemYurov\JobLog\` namespace
