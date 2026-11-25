@@ -11,16 +11,16 @@ use ArtemYurov\JobLog\Models\Mongo\JobLogStep as MongoJobLogStep;
 
 /**
  * Returns the model class in effect for the resolved driver. Consumers use
- * these instead of hard-coded model FQCNs so the whole package (stores,
+ * these instead of hard-coded model FQCNs so the whole package (logger,
  * commands, MoonShine resources) transparently switches between SQL and
  * MongoDB models.
  */
-final class ModelResolver
+final class JobLogModelResolver
 {
     /**
      * @return class-string<JobLog|MongoJobLog>
      */
-    public static function jobLog(): string
+    public static function log(): string
     {
         return JobLogStorage::isMongo() ? MongoJobLog::class : JobLog::class;
     }
@@ -28,7 +28,7 @@ final class ModelResolver
     /**
      * @return class-string<JobLogStep|MongoJobLogStep>
      */
-    public static function jobLogStep(): string
+    public static function step(): string
     {
         return JobLogStorage::isMongo() ? MongoJobLogStep::class : JobLogStep::class;
     }
@@ -36,7 +36,7 @@ final class ModelResolver
     /**
      * @return class-string<JobLogRecord|MongoJobLogRecord>
      */
-    public static function jobLogRecord(): string
+    public static function record(): string
     {
         return JobLogStorage::isMongo() ? MongoJobLogRecord::class : JobLogRecord::class;
     }

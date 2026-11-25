@@ -2,8 +2,7 @@
 
 namespace ArtemYurov\JobLog\Logger;
 
-use ArtemYurov\JobLog\Database\Contracts\JobLogStore;
-use ArtemYurov\JobLog\Database\JobLogStores;
+use ArtemYurov\JobLog\Database\JobLogModelResolver;
 use ArtemYurov\JobLog\Enums\JobLogStatus;
 use ArtemYurov\JobLog\Models\Contracts\JobLogContract;
 use ArtemYurov\JobLog\Tags\TagResolver;
@@ -31,8 +30,7 @@ class JobLogger
         protected readonly bool   $autoStepProgress = true,
     )
     {
-        $this->jobLog = self::store()->findByJobUuid($jobUuid)
-            ?? throw new \RuntimeException('JobLog not found for UUID: ' . $jobUuid);
+        $this->jobLog = JobLogModelResolver::log()::findByJobUuid($jobUuid);
 
         $databaseHandler = new DatabaseHandler(Level::Debug, true);
         $databaseHandler->setJobLog($this->jobLog);
@@ -57,7 +55,7 @@ class JobLogger
         $tagResolver = app(TagResolver::class);
         $tags = $tagResolver->resolve($jobObject);
 
-        self::store()->createLog([
+        JobLogModelResolver::log()::create([
             'connection' => $connection,
             'queue' => $queueName,
             'job_uuid' => $uuid,
@@ -125,7 +123,10 @@ class JobLogger
 
     private function finalizeCurrentProcessingStep(JobLogStatus $status): void
     {
-        $processingStep = self::store()->findProcessingStep($this->jobLog);
+        $processingStep = $this->jobLog->steps()
+            ->where('status', JobLogStatus::PROCESSING)
+            ->latest()
+            ->first();
 
         if ($processingStep) {
             $stepLogger = new JobLoggerStep($this->jobLog, $processingStep->step_key, $processingStep->step_name);
@@ -152,11 +153,6 @@ class JobLogger
     public function getJobLog(): JobLogContract
     {
         return $this->jobLog;
-    }
-
-    private static function store(): JobLogStore
-    {
-        return JobLogStores::resolve();
     }
 
     /**

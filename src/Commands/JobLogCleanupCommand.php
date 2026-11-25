@@ -2,8 +2,7 @@
 
 namespace ArtemYurov\JobLog\Commands;
 
-use ArtemYurov\JobLog\Database\Contracts\JobLogStore;
-use ArtemYurov\JobLog\Database\JobLogStores;
+use ArtemYurov\JobLog\Database\JobLogModelResolver;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 
@@ -24,9 +23,8 @@ class JobLogCleanupCommand extends Command
             'date' => $cutoffDate->format('Y-m-d H:i:s'),
         ]));
 
-        /** @var JobLogStore $store */
-        $store = JobLogStores::resolve();
-        $totalCount = $store->countLogsOlderThan($cutoffDate);
+        $model = JobLogModelResolver::log();
+        $totalCount = $model::where('queued_at', '<', $cutoffDate)->count();
 
         if ($totalCount === 0) {
             $this->info(__('joblog::joblog.command.cleanup_no_records'));
@@ -35,7 +33,7 @@ class JobLogCleanupCommand extends Command
 
         $this->info(__('joblog::joblog.command.cleanup_found', ['count' => $totalCount]));
 
-        $deletedCount = $store->deleteLogsOlderThan($cutoffDate);
+        $deletedCount = $model::deleteQueuedBefore($cutoffDate);
 
         $this->info(__('joblog::joblog.command.cleanup_success', ['count' => $deletedCount]));
 

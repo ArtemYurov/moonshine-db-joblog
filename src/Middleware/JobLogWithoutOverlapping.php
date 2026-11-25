@@ -2,7 +2,8 @@
 
 namespace ArtemYurov\JobLog\Middleware;
 
-use ArtemYurov\JobLog\Database\JobLogStores;
+use ArtemYurov\JobLog\Database\JobLogModelResolver;
+use ArtemYurov\JobLog\Enums\JobLogStatus;
 use ArtemYurov\JobLog\Models\Contracts\JobLogContract;
 use Carbon\Carbon;
 use Illuminate\Queue\Middleware\WithoutOverlapping;
@@ -115,8 +116,39 @@ class JobLogWithoutOverlapping extends WithoutOverlapping
             return $self;
         }
 
-        // Another message on the same tags, narrowed to a live process. The
-        // driver-specific query (JSON contains vs $all) lives in the store.
-        return JobLogStores::resolve()->findActiveOverlap($self, $expiresAfter);
+        return $this->findActiveOverlapByTags($self, $expiresAfter);
+    }
+
+    /**
+     * Another message on the same tags, narrowed to a live process.
+     *
+     * Only PROCESSING rows block — QUEUED ones would livelock released jobs. Empty
+     * tags fall back to the job class, matching the dispatch-time guard.
+     */
+    protected function findActiveOverlapByTags(JobLogContract $self, int $expiresAfter): ?JobLogContract
+    {
+        $tags = $self->tags?->all() ?? [];
+
+        $query = JobLogModelResolver::log()::query()
+            ->where('status', JobLogStatus::PROCESSING)
+            ->where('job_uuid', '!=', $self->job_uuid)
+            ->whereNotNull('pid')
+            ->where('started_at', '>=', Carbon::now()->subSeconds($expiresAfter))
+            ->where(function ($q) use ($self) {
+                $q->where('queued_at', '<', $self->queued_at)
+                    ->orWhere(function ($q2) use ($self) {
+                        $q2->where('queued_at', '=', $self->queued_at)
+                            ->where('job_uuid', '<', $self->job_uuid);
+                    });
+            });
+
+        if (empty($tags)) {
+            $query->where('job_class', $self->job_class);
+        } else {
+            $query->withAllTags($tags);
+        }
+
+        // Liveness is not expressible in the query, so only the candidates are asked.
+        return $query->get()->first(fn (JobLogContract $row) => $row->pidIsAlive());
     }
 }

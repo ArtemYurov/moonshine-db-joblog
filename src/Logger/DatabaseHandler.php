@@ -2,7 +2,7 @@
 
 namespace ArtemYurov\JobLog\Logger;
 
-use ArtemYurov\JobLog\Database\JobLogStores;
+use ArtemYurov\JobLog\Database\JobLogModelResolver;
 use ArtemYurov\JobLog\Models\Contracts\JobLogContract;
 use Monolog\Handler\AbstractProcessingHandler;
 use Monolog\LogRecord;
@@ -53,14 +53,14 @@ class DatabaseHandler extends AbstractProcessingHandler
             $context['line'] = $line;
         }
 
-        JobLogStores::resolve()->createRecord(
-            $this->jobLog,
-            $this->stepId,
-            strtolower($record->level->name),
-            $record->message,
-            !empty($context) ? $context : null,
-            $trace,
-            $record->datetime,
-        );
+        JobLogModelResolver::record()::create([
+            'job_log_id' => $this->jobLog->getKey(),
+            'job_log_step_id' => $this->stepId,
+            'level' => strtolower($record->level->name),
+            'message' => $record->message,
+            'context' => !empty($context) ? $context : null,
+            'trace' => $trace,
+            'created_at' => $record->datetime,
+        ]);
     }
 }

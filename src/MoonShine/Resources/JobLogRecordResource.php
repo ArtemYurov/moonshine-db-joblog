@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace ArtemYurov\JobLog\MoonShine\Resources;
 
 use MoonShine\Support\Enums\Action;
-use ArtemYurov\JobLog\Database\ModelResolver;
+use ArtemYurov\JobLog\Database\JobLogModelResolver;
 use MoonShine\Contracts\Core\DependencyInjection\CoreContract;
 use ArtemYurov\JobLog\Models\JobLogRecord;
 use ArtemYurov\JobLog\MoonShine\Traits\JobLogErrorFormatter;
@@ -31,7 +31,7 @@ class JobLogRecordResource extends ModelResource
     public function __construct(CoreContract $core)
     {
         // SQL or MongoDB model, per the resolved joblog.database driver.
-        $this->model = ModelResolver::jobLogRecord();
+        $this->model = JobLogModelResolver::record();
 
         parent::__construct($core);
     }

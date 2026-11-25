@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ArtemYurov\JobLog\MoonShine\Pages;
 
-use ArtemYurov\JobLog\Database\ModelResolver;
+use ArtemYurov\JobLog\Database\JobLogModelResolver;
 use ArtemYurov\JobLog\Enums\JobLogStatus;
 use Illuminate\Database\Eloquent\Builder;
 use MoonShine\AssetManager\InlineCss;
@@ -167,7 +167,7 @@ class JobLogIndexPage extends IndexPage
 
     private function getJobClassOptions(): array
     {
-        $model = ModelResolver::jobLog();
+        $model = JobLogModelResolver::log();
 
         // No SQL distinct(): the MongoDB query builder turns distinct() into the
         // flat "distinct" command, which breaks the subsequent pluck() —
@@ -183,7 +183,7 @@ class JobLogIndexPage extends IndexPage
 
     private function getQueueOptions(): array
     {
-        $model = ModelResolver::jobLog();
+        $model = JobLogModelResolver::log();
 
         return $model::query()
             ->whereNotNull('queue')
@@ -196,7 +196,7 @@ class JobLogIndexPage extends IndexPage
 
     private function getRelatedModelOptions(): array
     {
-        $model = ModelResolver::jobLog();
+        $model = JobLogModelResolver::log();
 
         return $model::query()
             ->whereNotNull('related_type')

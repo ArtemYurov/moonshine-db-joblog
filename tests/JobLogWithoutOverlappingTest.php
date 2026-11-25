@@ -3,6 +3,7 @@
 namespace ArtemYurov\JobLog\Tests;
 
 use ArtemYurov\JobLog\Middleware\JobLogWithoutOverlapping;
+use ArtemYurov\JobLog\Models\Contracts\JobLogContract;
 use ArtemYurov\JobLog\Models\JobLog;
 use PHPUnit\Framework\TestCase;
 
@@ -167,11 +168,11 @@ class JobLogWithoutOverlappingTest extends TestCase
  */
 class SpyJobLogWithoutOverlapping extends JobLogWithoutOverlapping
 {
-    public ?JobLog $activeOverlap = null;
+    public ?JobLogContract $activeOverlap = null;
 
     public ?int $capUsed = null;
 
-    protected function findActiveOverlapByTags(JobLog $self, int $expiresAfter): ?JobLog
+    protected function findActiveOverlapByTags(JobLogContract $self, int $expiresAfter): ?JobLogContract
     {
         $this->capUsed = $expiresAfter;
 

@@ -2,8 +2,7 @@
 
 namespace ArtemYurov\JobLog\Commands;
 
-use ArtemYurov\JobLog\Database\Contracts\JobLogStore;
-use ArtemYurov\JobLog\Database\JobLogStores;
+use ArtemYurov\JobLog\Database\JobLogModelResolver;
 use Illuminate\Console\Command;
 
 class JobLogTruncateCommand extends Command
@@ -14,9 +13,7 @@ class JobLogTruncateCommand extends Command
 
     public function handle(): int
     {
-        /** @var JobLogStore $store */
-        $store = JobLogStores::resolve();
-        $totalCount = $store->countLogs();
+        $totalCount = JobLogModelResolver::log()::count();
 
         if ($totalCount === 0) {
             $this->info(__('joblog::joblog.command.truncate_no_records'));
@@ -28,7 +25,10 @@ class JobLogTruncateCommand extends Command
             return self::SUCCESS;
         }
 
-        $store->truncateLogs();
+        // Truncate in correct order (foreign keys)
+        JobLogModelResolver::record()::truncate();
+        JobLogModelResolver::step()::truncate();
+        JobLogModelResolver::log()::truncate();
 
         $this->info(__('joblog::joblog.command.truncate_success'));
 

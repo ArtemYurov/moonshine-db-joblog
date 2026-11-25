@@ -4,10 +4,7 @@ namespace ArtemYurov\JobLog\Tests;
 
 use ArtemYurov\JobLog\Database\Exceptions\DatabaseConfigurationException;
 use ArtemYurov\JobLog\Database\JobLogStorage;
-use ArtemYurov\JobLog\Database\JobLogStores;
-use ArtemYurov\JobLog\Database\ModelResolver;
-use ArtemYurov\JobLog\Database\Stores\EloquentJobLogStore;
-use ArtemYurov\JobLog\Database\Stores\MongoDbJobLogStore;
+use ArtemYurov\JobLog\Database\JobLogModelResolver;
 use ArtemYurov\JobLog\Models\JobLog;
 use ArtemYurov\JobLog\Models\Mongo\JobLog as MongoJobLog;
 use ArtemYurov\JobLog\Tests\Support\ArrayConfigRepository;
@@ -176,7 +173,7 @@ class JobLogStorageTest extends TestCase
     {
         $this->withConfig($this->postgres());
 
-        $this->assertSame(JobLog::class, ModelResolver::jobLog());
+        $this->assertSame(JobLog::class, JobLogModelResolver::log());
     }
 
     #[RunInSeparateProcess]
@@ -188,39 +185,6 @@ class JobLogStorageTest extends TestCase
 
         $this->withConfig($config);
 
-        $this->assertSame(MongoJobLog::class, ModelResolver::jobLog());
-    }
-
-    #[RunInSeparateProcess]
-    #[PreserveGlobalState(false)]
-    public function test_store_fallback_constructs_implementation_by_driver(): void
-    {
-        $this->withConfig($this->postgres());
-
-        $this->assertInstanceOf(EloquentJobLogStore::class, JobLogStores::resolve());
-    }
-
-    #[RunInSeparateProcess]
-    #[PreserveGlobalState(false)]
-    public function test_store_fallback_prefers_container_binding(): void
-    {
-        $this->withConfig($this->postgres());
-
-        $bound = new EloquentJobLogStore();
-        $this->container->instance(\ArtemYurov\JobLog\Database\Contracts\JobLogStore::class, $bound);
-
-        $this->assertSame($bound, JobLogStores::resolve());
-    }
-
-    #[RunInSeparateProcess]
-    #[PreserveGlobalState(false)]
-    public function test_store_fallback_constructs_mongo_store_for_mongodb(): void
-    {
-        $config = $this->postgres();
-        $config['database']['default'] = 'mongodb';
-
-        $this->withConfig($config);
-
-        $this->assertInstanceOf(MongoDbJobLogStore::class, JobLogStores::resolve());
+        $this->assertSame(MongoJobLog::class, JobLogModelResolver::log());
     }
 }

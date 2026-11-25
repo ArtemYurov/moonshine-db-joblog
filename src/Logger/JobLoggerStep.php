@@ -2,7 +2,7 @@
 
 namespace ArtemYurov\JobLog\Logger;
 
-use ArtemYurov\JobLog\Database\JobLogStores;
+use ArtemYurov\JobLog\Database\JobLogModelResolver;
 use ArtemYurov\JobLog\Enums\JobLogStatus;
 use ArtemYurov\JobLog\Models\Contracts\JobLogContract;
 use ArtemYurov\JobLog\Models\Contracts\JobLogStepContract;
@@ -39,8 +39,15 @@ class JobLoggerStep
 
     protected function initStep(): void
     {
-        $this->stepModel = JobLogStores::resolve()
-            ->findOrCreateStep($this->jobLog, $this->stepKey, $this->stepName);
+        $this->stepModel = JobLogModelResolver::step()::firstOrCreate([
+            'job_log_id' => $this->jobLog->getKey(),
+            'step_key' => $this->stepKey,
+        ], [
+            'step_name' => $this->stepName,
+            'status' => JobLogStatus::PROCESSING,
+            'progress' => 0,
+            'started_at' => Carbon::now(),
+        ]);
     }
 
     /**

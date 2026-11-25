@@ -12,7 +12,7 @@ use Illuminate\Support\Collection;
  * stay compatible; the relations the package relies on are declared here.
  *
  * @property mixed $id
- * @property string|null $connection_name
+ * @property string|null $connection
  * @property string|null $queue
  * @property string|null $job_uuid
  * @property string|null $job_class
@@ -29,6 +29,8 @@ use Illuminate\Support\Collection;
  * @property Collection|null $args
  * @property Collection|null $tags
  * @property Collection|null $data
+ *
+ * @method static \Illuminate\Database\Eloquent\Builder withAllTags(array $tags) Rows carrying every given tag
  */
 interface JobLogContract
 {

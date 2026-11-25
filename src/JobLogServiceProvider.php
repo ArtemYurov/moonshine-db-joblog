@@ -6,11 +6,8 @@ use ArtemYurov\JobLog\Commands\JobLogCleanupCommand;
 use ArtemYurov\JobLog\Commands\JobLogInstallCommand;
 use ArtemYurov\JobLog\Commands\JobLogTruncateCommand;
 use ArtemYurov\JobLog\Tags\TagResolver;
-use ArtemYurov\JobLog\Database\Contracts\JobLogStore;
 use ArtemYurov\JobLog\Database\JobLogStorage;
-use ArtemYurov\JobLog\Database\JobLogStores;
-use ArtemYurov\JobLog\Database\Stores\EloquentJobLogStore;
-use ArtemYurov\JobLog\Database\Stores\MongoDbJobLogStore;
+use ArtemYurov\JobLog\Database\JobLogModelResolver;
 use ArtemYurov\JobLog\Enums\JobLogStatus;
 use ArtemYurov\JobLog\Logger\JobLogger;
 use ArtemYurov\JobLog\Middleware\LoggableExceptionAttempts;
@@ -37,13 +34,6 @@ class JobLogServiceProvider extends ServiceProvider
 
         // Register TagResolver
         $this->app->singleton(TagResolver::class);
-
-        // Log storage: SQL (pgsql) or MongoDB, resolved from joblog.database
-        $this->app->singleton(JobLogStore::class, function () {
-            return JobLogStorage::isMongo()
-                ? new MongoDbJobLogStore()
-                : new EloquentJobLogStore();
-        });
 
         // Optional Horizon purge interceptor
         $this->registerHorizonPurgeInterceptor();
@@ -199,7 +189,7 @@ class JobLogServiceProvider extends ServiceProvider
                     return;
                 }
 
-                $currentStatus = JobLogStores::resolve()->findByJobUuid($uuid)?->status;
+                $currentStatus = JobLogModelResolver::log()::where('job_uuid', $uuid)->first()?->status;
 
                 // Don't overwrite final status (job may call failed() inside handle())
                 if (in_array($currentStatus, [JobLogStatus::FAILED, JobLogStatus::INTERRUPTED])) {

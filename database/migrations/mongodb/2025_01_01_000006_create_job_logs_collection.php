@@ -10,7 +10,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::connection(JobLogStorage::connectionName())->create('job_logs', function (Blueprint $collection) {
-            // The unique index is what makes JobLog::firstOrCreate/findByJobUuid reliable.
+            // One document per queue job: findByJobUuid() relies on it.
             $collection->unique('job_uuid');
 
             $collection->index('status');

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace ArtemYurov\JobLog\MoonShine\Resources;
 
 use MoonShine\Support\Enums\Action;
-use ArtemYurov\JobLog\Database\ModelResolver;
+use ArtemYurov\JobLog\Database\JobLogModelResolver;
 use MoonShine\Contracts\Core\DependencyInjection\CoreContract;
 use ArtemYurov\JobLog\Enums\JobLogStatus;
 use ArtemYurov\JobLog\Models\JobLogStep;
@@ -36,7 +36,7 @@ class JobLogStepResource extends ModelResource
     public function __construct(CoreContract $core)
     {
         // SQL or MongoDB model, per the resolved joblog.database driver.
-        $this->model = ModelResolver::jobLogStep();
+        $this->model = JobLogModelResolver::step();
 
         parent::__construct($core);
     }

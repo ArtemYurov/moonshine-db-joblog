@@ -2,7 +2,7 @@
 
 namespace ArtemYurov\JobLog\Horizon;
 
-use ArtemYurov\JobLog\Database\JobLogStores;
+use ArtemYurov\JobLog\Database\JobLogModelResolver;
 use ArtemYurov\JobLog\Enums\JobLogStatus;
 use Carbon\Carbon;
 use Laravel\Horizon\Repositories\RedisJobRepository;
@@ -16,12 +16,12 @@ class LoggableRedisJobRepository extends RedisJobRepository
     {
         $result = parent::purge($queue);
 
-        $count = JobLogStores::resolve()->purgeQueue(
-            $queue,
-            [JobLogStatus::QUEUED, JobLogStatus::PROCESSING],
-            JobLogStatus::INTERRUPTED,
-            Carbon::now(),
-        );
+        $count = JobLogModelResolver::log()::where('queue', $queue)
+            ->whereIn('status', [JobLogStatus::QUEUED, JobLogStatus::PROCESSING])
+            ->update([
+                'status' => JobLogStatus::INTERRUPTED,
+                'finished_at' => Carbon::now(),
+            ]);
 
         if (app()->runningInConsole()) {
             echo "\nJobLog: Interrupted {$count} jobs.\n";

@@ -6,6 +6,8 @@ use ArtemYurov\JobLog\Database\JobLogStorage;
 use ArtemYurov\JobLog\Enums\JobLogStatus;
 use ArtemYurov\JobLog\Models\Concerns\HasJobLogBehavior;
 use ArtemYurov\JobLog\Models\Contracts\JobLogContract;
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
@@ -73,5 +75,17 @@ class JobLog extends Model implements JobLogContract
             ->whereNull('job_log_step_id')
             ->where('level', 'error')
             ->orderByDesc('id');
+    }
+
+    /** Documents carrying every given tag. */
+    public function scopeWithAllTags(Builder $query, array $tags): void
+    {
+        $query->where('tags', 'all', $tags);
+    }
+
+    /** Deletes logs queued before the cutoff. */
+    public static function deleteQueuedBefore(Carbon $cutoff): int
+    {
+        return static::where('queued_at', '<', $cutoff)->delete();
     }
 }
