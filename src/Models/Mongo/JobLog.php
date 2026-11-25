@@ -6,6 +6,7 @@ use ArtemYurov\JobLog\Database\JobLogStorage;
 use ArtemYurov\JobLog\Enums\JobLogStatus;
 use ArtemYurov\JobLog\Models\Concerns\HasJobLogBehavior;
 use ArtemYurov\JobLog\Models\Contracts\JobLogContract;
+use ArtemYurov\JobLog\Models\Mongo\Casts\ArrayCollectionCast;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -24,18 +25,19 @@ class JobLog extends Model implements JobLogContract
 
     protected $table = 'job_logs';
 
-    protected $collection = 'job_logs';
-
     protected $guarded = [];
+
+    /** Column default of the SQL schema, which MongoDB lacks. */
+    protected $attributes = ['progress' => 0];
 
     protected $casts = [
         'queued_at' => 'datetime',
         'started_at' => 'datetime',
         'finished_at' => 'datetime',
         'status' => JobLogStatus::class,
-        'args' => 'collection',
-        'tags' => 'collection',
-        'data' => 'collection',
+        'args' => ArrayCollectionCast::class,
+        'tags' => ArrayCollectionCast::class,
+        'data' => ArrayCollectionCast::class,
         'pid' => 'integer',
     ];
 
@@ -83,9 +85,32 @@ class JobLog extends Model implements JobLogContract
         $query->where('tags', 'all', $tags);
     }
 
-    /** Deletes logs queued before the cutoff. */
+    /**
+     * Deletes logs queued before the cutoff together with their steps and records.
+     * MongoDB has no foreign key cascade, so the children go first, batch by batch.
+     */
     public static function deleteQueuedBefore(Carbon $cutoff): int
     {
-        return static::where('queued_at', '<', $cutoff)->delete();
+        $deleted = 0;
+
+        while (true) {
+            // 'id', not '_id': laravel-mongodb plucks '_id' as nulls.
+            $ids = static::where('queued_at', '<', $cutoff)->limit(1000)->pluck('id')->all();
+
+            if ($ids === []) {
+                return $deleted;
+            }
+
+            JobLogRecord::whereIn('job_log_id', $ids)->delete();
+            JobLogStep::whereIn('job_log_id', $ids)->delete();
+            $batch = static::whereKey($ids)->delete();
+
+            // A batch that deletes nothing would be selected again forever.
+            if ($batch === 0) {
+                return $deleted;
+            }
+
+            $deleted += $batch;
+        }
     }
 }

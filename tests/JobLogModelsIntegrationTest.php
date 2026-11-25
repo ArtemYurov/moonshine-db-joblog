@@ -94,6 +94,21 @@ class JobLogModelsIntegrationTest extends TestCase
         $this->assertEquals([$fresh->id, $fresh->id], JobLogRecord::pluck('job_log_id')->all());
     }
 
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
+    public function test_latest_error_record_skips_later_records_and_step_errors(): void
+    {
+        $log = $this->log('me');
+        $step = JobLogStep::create(['job_log_id' => $log->id, 'step_key' => 'import']);
+
+        $this->record($log, 'error', 'log error');
+        $this->record($log, 'info', 'later info');
+        $this->record($log, 'error', 'step error', $step->id);
+
+        $this->assertSame('log error', $log->latestErrorRecord?->message, 'lazy');
+        $this->assertSame('log error', JobLog::with('latestErrorRecord')->first()->latestErrorRecord?->message, 'eager');
+    }
+
     private function log(string $uuid, ?array $tags = null, ?Carbon $queuedAt = null): JobLog
     {
         return JobLog::create([

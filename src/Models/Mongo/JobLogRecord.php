@@ -4,6 +4,7 @@ namespace ArtemYurov\JobLog\Models\Mongo;
 
 use ArtemYurov\JobLog\Database\JobLogStorage;
 use ArtemYurov\JobLog\Models\Contracts\JobLogRecordContract;
+use ArtemYurov\JobLog\Models\Mongo\Casts\ArrayCollectionCast;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use MongoDB\Laravel\Eloquent\Model;
 
@@ -16,12 +17,10 @@ class JobLogRecord extends Model implements JobLogRecordContract
 
     protected $table = 'job_log_records';
 
-    protected $collection = 'job_log_records';
-
     protected $guarded = [];
 
     protected $casts = [
-        'context' => 'collection',
+        'context' => ArrayCollectionCast::class,
         'created_at' => 'datetime',
     ];
 

@@ -59,15 +59,16 @@ class JobLog extends Model implements JobLogContract
 
     public function latestStep(): HasOne
     {
-        return $this->hasOne(JobLogStep::class)->orderByDesc('id');
+        return $this->hasOne(JobLogStep::class)->latestOfMany();
     }
 
     public function latestErrorRecord(): HasOne
     {
-        return $this->hasOne(JobLogRecord::class)
-            ->whereNull('job_log_step_id')
-            ->where('level', 'error')
-            ->orderByDesc('id');
+        // The filter belongs inside ofMany(): outside it, it would test only the newest record of any level.
+        return $this->hasOne(JobLogRecord::class)->ofMany(
+            ['id' => 'max'],
+            fn ($query) => $query->whereNull('job_log_step_id')->where('level', 'error'),
+        );
     }
 
     /** Rows carrying every given tag. */

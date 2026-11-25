@@ -18,7 +18,6 @@ return new class extends Migration
             $collection->index(['job_class' => 1, 'status' => 1]);
             $collection->index('queued_at');
             $collection->index('started_at');
-            $collection->index('pid');
             $collection->index(['related_type' => 1, 'related_id' => 1]);
             // Multikey index: serves the $all overlap lookups by tags.
             $collection->index('tags');
