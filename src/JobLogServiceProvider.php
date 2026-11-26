@@ -41,8 +41,7 @@ class JobLogServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        // Fail loudly (with the repository link) when the resolved driver
-        // is not supported — before any query gets a chance to run.
+        // Fail loudly on a broken log connection before any query gets a chance to run.
         JobLogStorage::guardWhenConfigured();
 
         $this->loadTranslationsFrom(__DIR__ . '/../lang', 'joblog');

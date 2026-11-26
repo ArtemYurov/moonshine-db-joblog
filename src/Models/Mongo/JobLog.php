@@ -115,6 +115,14 @@ class JobLog extends Model implements JobLogContract
         }
     }
 
+    /** Empties the log collections. */
+    public static function truncateAll(): void
+    {
+        JobLogRecord::truncate();
+        JobLogStep::truncate();
+        static::truncate();
+    }
+
     /** Distinct non-null values of a field. */
     public static function distinctValues(string $column): array
     {

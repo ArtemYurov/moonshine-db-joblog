@@ -97,6 +97,19 @@ class JobLogModelsIntegrationTest extends TestCase
 
     #[RunInSeparateProcess]
     #[PreserveGlobalState(false)]
+    public function test_truncate_all_empties_every_table(): void
+    {
+        $log = $this->log('me');
+        $step = JobLogStep::create(['job_log_id' => $log->id, 'step_key' => 'import']);
+        $this->record($log, 'info', 'step record', $step->id);
+
+        JobLog::truncateAll();
+
+        $this->assertSame([0, 0, 0], [JobLog::count(), JobLogStep::count(), JobLogRecord::count()]);
+    }
+
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
     public function test_latest_error_record_skips_later_records_and_step_errors(): void
     {
         $log = $this->log('me');

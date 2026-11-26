@@ -14,7 +14,7 @@
 ## Возможности
 
 - Автоматическое отслеживание жизненного цикла job (queued → processing → processed/failed)
-- Хранение логов в PostgreSQL (без настройки), SQLite (тесты, локально) или MongoDB (опциональное переключение, без переноса данных)
+- Хранение логов в PostgreSQL (без настройки), MySQL/MariaDB, SQLite (тесты, локально) или MongoDB (опциональное переключение, без переноса данных)
 - Пошаговый прогресс с именованными шагами
 - PSR-3 совместимое логирование (emergency, alert, critical, error, warning, notice, info, debug)
 - Полиморфная связь `related` — привязка любой Eloquent-модели к задаче
@@ -31,7 +31,7 @@
 - PHP 8.2+
 - Laravel 11.x, 12.x или 13.x
 - MoonShine 4.x
-- PostgreSQL, SQLite или MongoDB для лога (MySQL и MariaDB не поддерживаются)
+- PostgreSQL, MySQL/MariaDB, SQLite или MongoDB для лога
 
 ## Установка
 
@@ -74,13 +74,10 @@ php artisan vendor:publish --tag=joblog-lang
 задано — в соединении приложения по умолчанию (`DB_CONNECTION`). Драйвер всегда берётся из этого
 соединения:
 
-- `pgsql` — основное хранилище, настраивать ничего не нужно;
+- `pgsql` — основное хранилище, настраивать ничего не нужно; для `data` и `args` строятся GIN-индексы;
+- `mysql` / `mariadb` — поддерживаются, тестами пакета не покрыты;
 - `sqlite` — тесты и локальная разработка;
 - `mongodb` — по выбору, нужен пакет `mongodb/laravel-mongodb`.
-
-Любой другой драйвер (MySQL, MariaDB, …) отвергается при загрузке ошибкой со ссылкой на
-[issues репозитория](https://github.com/ArtemYurov/moonshine-db-joblog/issues) — там можно попросить
-автора о поддержке.
 
 ### Переключение лога на MongoDB
 
@@ -414,7 +411,7 @@ class MyJobLogResource extends JobLogResource
 // config/joblog.php
 return [
     // Соединение хранилища: null = соединение приложения по умолчанию (DB_CONNECTION);
-    // драйвер берётся из этого соединения (pgsql, sqlite или mongodb)
+    // драйвер берётся из этого соединения (любой SQL-драйвер или mongodb)
     'database' => [
         'connection' => env('JOBLOG_DB_CONNECTION'),
     ],
@@ -460,8 +457,6 @@ php artisan joblog:truncate
 
 ## Обновление на 2.0
 
-- **MySQL и MariaDB не поддерживаются**: сервис-провайдер бросает исключение при загрузке, если
-  соединение лога использует драйвер, отличный от `pgsql`, `sqlite` и `mongodb`.
 - **Сигнатуры принимают контракты моделей** (`ArtemYurov\JobLog\Models\Contracts\JobLogContract`)
   вместо SQL-моделей, чтобы подходили оба хранилища. Обновите переопределения и тестовые двойники:
   - `JobLogger::getJobLog(): JobLogContract`;

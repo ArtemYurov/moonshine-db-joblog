@@ -7,9 +7,8 @@ return [
     |--------------------------------------------------------------------------
     | Named connection from the host's config/database.php that stores the log.
     | When null, the application default connection is used (DB_CONNECTION).
-    | The storage driver is the driver of that connection: pgsql, sqlite or
-    | mongodb (needs mongodb/laravel-mongodb). Any other driver is rejected at
-    | boot with a link to the repository issues.
+    | The storage driver is the driver of that connection: any SQL driver
+    | Laravel supports, or mongodb (needs mongodb/laravel-mongodb).
     */
     'database' => [
         'connection' => env('JOBLOG_DB_CONNECTION'),

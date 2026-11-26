@@ -2,7 +2,6 @@
 
 namespace ArtemYurov\JobLog\Database\Exceptions;
 
-use ArtemYurov\JobLog\Database\JobLogStorage;
 use RuntimeException;
 
 /**
@@ -10,18 +9,6 @@ use RuntimeException;
  */
 class DatabaseConfigurationException extends RuntimeException
 {
-    public static function unsupported(string $driver): self
-    {
-        return new self(sprintf(
-            'JobLog: database driver "%s" is not supported. Supported drivers: %s. '
-            . 'If you need "%s" support, please ask the author by opening an issue: %s',
-            $driver,
-            implode(', ', JobLogStorage::SUPPORTED_DRIVERS),
-            $driver,
-            JobLogStorage::REPOSITORY_ISSUES_URL,
-        ));
-    }
-
     public static function noDefaultConnection(): self
     {
         return new self(

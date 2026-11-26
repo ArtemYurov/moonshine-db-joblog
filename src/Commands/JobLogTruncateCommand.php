@@ -25,10 +25,7 @@ class JobLogTruncateCommand extends Command
             return self::SUCCESS;
         }
 
-        // Truncate in correct order (foreign keys)
-        JobLogModelResolver::record()::truncate();
-        JobLogModelResolver::step()::truncate();
-        JobLogModelResolver::log()::truncate();
+        JobLogModelResolver::log()::truncateAll();
 
         $this->info(__('joblog::joblog.command.truncate_success'));
 

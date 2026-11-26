@@ -14,7 +14,7 @@ Track your queue jobs in real-time: statuses, steps, progress, errors — all vi
 ## Features
 
 - Automatic tracking of queue job lifecycle (queued → processing → processed/failed)
-- Log storage on PostgreSQL (zero configuration), SQLite (tests, local) or MongoDB (opt-in switch, no data migration)
+- Log storage on PostgreSQL (zero configuration), MySQL/MariaDB, SQLite (tests, local) or MongoDB (opt-in switch, no data migration)
 - Step-by-step progress with named steps
 - PSR-3 compatible logging (emergency, alert, critical, error, warning, notice, info, debug)
 - Polymorphic `related` relation — link any Eloquent model to a job
@@ -31,7 +31,7 @@ Track your queue jobs in real-time: statuses, steps, progress, errors — all vi
 - PHP 8.2+
 - Laravel 11.x, 12.x or 13.x
 - MoonShine 4.x
-- PostgreSQL, SQLite or MongoDB for the log (MySQL and MariaDB are not supported)
+- PostgreSQL, MySQL/MariaDB, SQLite or MongoDB for the log
 
 ## Installation
 
@@ -74,13 +74,10 @@ The log lives on the connection named in `joblog.database.connection` (`JOBLOG_D
 on the application default connection (`DB_CONNECTION`) when that is not set. Its driver is always
 the connection's own:
 
-- `pgsql` — the main storage, nothing to configure;
+- `pgsql` — the main storage, nothing to configure; `data` and `args` get GIN indexes;
+- `mysql` / `mariadb` — supported, not covered by the package tests;
 - `sqlite` — tests and local development;
 - `mongodb` — opt-in, needs the `mongodb/laravel-mongodb` package.
-
-Any other driver (MySQL, MariaDB, …) is rejected at boot with an error that links to the
-[repository issues](https://github.com/ArtemYurov/moonshine-db-joblog/issues) — ask the author for
-support there.
 
 ### Switching the log to MongoDB
 
@@ -413,7 +410,7 @@ class MyJobLogResource extends JobLogResource
 // config/joblog.php
 return [
     // Log storage connection: null = application default (DB_CONNECTION);
-    // the driver comes from that connection (pgsql, sqlite or mongodb)
+    // the driver comes from that connection (any SQL driver or mongodb)
     'database' => [
         'connection' => env('JOBLOG_DB_CONNECTION'),
     ],
@@ -459,8 +456,6 @@ php artisan joblog:truncate
 
 ## Upgrading to 2.0
 
-- **MySQL and MariaDB are not supported**: the service provider throws at boot when the log
-  connection uses a driver other than `pgsql`, `sqlite` or `mongodb`.
 - **Signatures take the model contracts** (`ArtemYurov\JobLog\Models\Contracts\JobLogContract`)
   instead of the SQL models, so both storages fit. Update overrides and test doubles of:
   - `JobLogger::getJobLog(): JobLogContract`;

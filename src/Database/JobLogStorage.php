@@ -15,14 +15,7 @@ use ArtemYurov\JobLog\Database\Exceptions\DatabaseConfigurationException;
  */
 final class JobLogStorage
 {
-    public const DRIVER_PGSQL = 'pgsql';
-    public const DRIVER_SQLITE = 'sqlite';
     public const DRIVER_MONGODB = 'mongodb';
-
-    /** Drivers the package can store its data in. */
-    public const SUPPORTED_DRIVERS = [self::DRIVER_PGSQL, self::DRIVER_SQLITE, self::DRIVER_MONGODB];
-
-    public const REPOSITORY_ISSUES_URL = 'https://github.com/ArtemYurov/moonshine-db-joblog/issues';
 
     /**
      * Effective connection name: the explicit joblog.database.connection or,
@@ -77,8 +70,7 @@ final class JobLogStorage
     /**
      * Validate the resolved configuration, throwing a descriptive exception
      * on every failure mode: no default connection, unknown connection,
-     * unsupported driver (with the issues link), MongoDB selected without the
-     * package installed.
+     * MongoDB selected without the package installed.
      */
     public static function assertSupported(): void
     {
@@ -92,10 +84,6 @@ final class JobLogStorage
 
         if ($driver === null) {
             throw DatabaseConfigurationException::connectionNotFound($connection);
-        }
-
-        if (!in_array($driver, self::SUPPORTED_DRIVERS, true)) {
-            throw DatabaseConfigurationException::unsupported($driver);
         }
 
         if ($driver === self::DRIVER_MONGODB && !self::hasMongoPackage()) {

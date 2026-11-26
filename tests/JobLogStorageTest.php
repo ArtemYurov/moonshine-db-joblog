@@ -17,7 +17,7 @@ use PHPUnit\Framework\TestCase;
  * Storage resolution:
  *  - joblog.database.connection null → database.default (DB_CONNECTION);
  *  - the driver is always the connection's own;
- *  - drivers outside SUPPORTED_DRIVERS are rejected with the repository link.
+ *  - any SQL driver is accepted; MongoDB needs its package.
  */
 class JobLogStorageTest extends TestCase
 {
@@ -105,20 +105,16 @@ class JobLogStorageTest extends TestCase
 
     #[RunInSeparateProcess]
     #[PreserveGlobalState(false)]
-    public function test_unsupported_driver_is_rejected_with_repository_link(): void
+    public function test_assert_supported_accepts_mysql(): void
     {
         $config = $this->postgres();
         $config['database']['default'] = 'mysql';
 
         $this->withConfig($config);
 
-        try {
-            JobLogStorage::assertSupported();
-            $this->fail('mysql must be rejected');
-        } catch (DatabaseConfigurationException $e) {
-            $this->assertStringContainsString('mysql', $e->getMessage());
-            $this->assertStringContainsString(JobLogStorage::REPOSITORY_ISSUES_URL, $e->getMessage());
-        }
+        JobLogStorage::assertSupported();
+
+        $this->assertSame('mysql', JobLogStorage::driver());
     }
 
     #[RunInSeparateProcess]
