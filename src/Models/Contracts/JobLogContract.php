@@ -18,7 +18,7 @@ use Illuminate\Support\Collection;
  * @property string|null $job_class
  * @property JobLogStatus|null $status
  * @property string|null $custom_status
- * @property int|string|null $pid
+ * @property int|null $pid
  * @property int|null $progress
  * @property Carbon|null $queued_at
  * @property Carbon|null $started_at
