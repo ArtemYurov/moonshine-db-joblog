@@ -36,7 +36,7 @@ class JobLogger
         $databaseHandler->setJobLog($this->jobLog);
 
         $monolog = new Logger("joblog-{$this->jobLog->getKey()}", [$databaseHandler]);
-        $this->psrLogger = new PsrLogger($monolog, consoleOutput: $this->isConsoleOutputEnabled());
+        $this->psrLogger = new PsrLogger($monolog, consoleOutput: $this->isTerminalOutputEnabled());
     }
 
     /**

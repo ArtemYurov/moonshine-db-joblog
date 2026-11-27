@@ -43,10 +43,10 @@ class ConfigDefaultsTest extends TestCase
         $this->assertSame('03:00', $this->config['cleanup']['time']);
     }
 
-    public function test_console_output_enabled_by_default(): void
+    public function test_terminal_output_enabled_by_default(): void
     {
-        $this->assertArrayHasKey('console_output', $this->config);
-        $this->assertTrue($this->config['console_output']);
+        $this->assertArrayHasKey('terminal_output', $this->config);
+        $this->assertTrue($this->config['terminal_output']);
     }
 
     public function test_horizon_defaults(): void

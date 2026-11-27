@@ -50,7 +50,7 @@ class JobLogWithoutOverlappingIntegrationTest extends TestCase
                 'default' => 'sync',
                 'connections' => ['sync' => ['driver' => 'sync']],
             ],
-            'joblog' => ['console_output' => false], // keep test output clean
+            'joblog' => ['terminal_output' => false], // keep test output clean
         ]);
         $this->container->instance('config', $config);
 

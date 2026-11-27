@@ -29,7 +29,7 @@ class JobLoggerStep
         $databaseHandler->setStepId($this->stepModel->getKey());
 
         $monolog = new Logger("joblog-step-{$this->jobLog->getKey()}-{$this->stepKey}", [$databaseHandler]);
-        $this->psrLogger = new PsrLogger($monolog, "[STEP: {$this->stepKey}]", $this->isConsoleOutputEnabled());
+        $this->psrLogger = new PsrLogger($monolog, "[STEP: {$this->stepKey}]", $this->isTerminalOutputEnabled());
     }
 
     public function getStatus(): JobLogStatus

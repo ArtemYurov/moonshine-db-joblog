@@ -204,12 +204,23 @@ trait JobLoggerMethods
         return $this->getModel() instanceof JobLogStepContract;
     }
 
-    protected function isConsoleOutputEnabled(): bool
+    protected function isTerminalOutputEnabled(): bool
     {
-        return function_exists('config')
-            && config('joblog.console_output', true)
-            && function_exists('app')
-            && app()->runningInConsole();
+        if (! function_exists('config') || ! function_exists('app')) {
+            return false;
+        }
+
+        return config('joblog.terminal_output', true) && $this->isInteractiveTerminal();
+    }
+
+    /**
+     * Horizon and scheduler workers run in console too, but have no terminal attached.
+     */
+    protected function isInteractiveTerminal(): bool
+    {
+        return app()->runningInConsole()
+            && defined('STDOUT')
+            && stream_isatty(STDOUT);
     }
 
     protected function calculateProgressPercent(int $current, int $total): int

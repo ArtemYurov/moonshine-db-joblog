@@ -28,15 +28,16 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Console Output
+    | Terminal Output
     |--------------------------------------------------------------------------
     | When enabled, job logger messages (info, warning, error, step start, etc.)
-    | are duplicated to stdout with ANSI coloring. Only works when running in
-    | CLI context (artisan commands, queue workers, Horizon).
+    | are duplicated to stdout with ANSI coloring. Only works when stdout is a
+    | terminal (artisan commands and queue workers started by hand). Horizon,
+    | the scheduler and other non-interactive runs write to the database only.
     |
     | Set to false to write only to the database (job_log_records table).
     */
-    'console_output' => (bool) env('JOBLOG_CONSOLE_OUTPUT', true),
+    'terminal_output' => (bool) env('JOBLOG_TERMINAL_OUTPUT', true),
 
     /*
     |--------------------------------------------------------------------------

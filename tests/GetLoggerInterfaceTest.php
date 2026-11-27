@@ -132,17 +132,17 @@ class GetLoggerInterfaceTest extends TestCase
         $this->assertSame('via trait', $records[1]->message);
     }
 
-    public function test_is_console_output_enabled_returns_false_without_laravel(): void
+    public function test_is_terminal_output_enabled_returns_false_without_laravel(): void
     {
         // Without Laravel app, config() and app() are unavailable
-        $result = $this->callIsConsoleOutputEnabled();
+        $result = $this->callIsTerminalOutputEnabled();
 
         $this->assertFalse($result);
     }
 
-    private function callIsConsoleOutputEnabled(): bool
+    private function callIsTerminalOutputEnabled(): bool
     {
-        $method = new \ReflectionMethod($this->subject, 'isConsoleOutputEnabled');
+        $method = new \ReflectionMethod($this->subject, 'isTerminalOutputEnabled');
         $method->setAccessible(true);
 
         return $method->invoke($this->subject);

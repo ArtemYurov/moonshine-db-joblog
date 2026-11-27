@@ -423,8 +423,8 @@ return [
         'time' => env('JOBLOG_CLEANUP_TIME', '03:00'),
     ],
 
-    // Вывод в консоль при выполнении artisan команд
-    'console_output' => (bool) env('JOBLOG_CONSOLE_OUTPUT', true),
+    // Вывод в консоль только в интерактивном терминале (под Horizon и планировщиком — нет)
+    'terminal_output' => (bool) env('JOBLOG_TERMINAL_OUTPUT', true),
 
     // Интеграция с Laravel Horizon (определяется автоматически)
     'horizon' => [
